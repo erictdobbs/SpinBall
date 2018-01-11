@@ -1,0 +1,9 @@
+body {
+    background-color: #47444e;
+}
+
+canvas {
+    position: fixed;
+    top:0;
+    left: 0;
+}

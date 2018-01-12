@@ -35,6 +35,13 @@ var KeyboardHandler = (function () {
     KeyboardHandler.prototype.isLeftPressed = function () { return this.keyState[Key.Left] || this.keyState[Key.A]; };
     KeyboardHandler.prototype.isRightPressed = function () { return this.keyState[Key.Right] || this.keyState[Key.D]; };
     KeyboardHandler.prototype.isDownPressed = function () { return this.keyState[Key.Down] || this.keyState[Key.S]; };
+    KeyboardHandler.prototype.isAnyPressed = function () {
+        for (var k in this.keyState) {
+            if (this.keyState[k])
+                return true;
+        }
+        return false;
+    };
     KeyboardHandler.prototype.cycleKeyState = function () {
         for (var key in this.keyState) {
             this.keyStateOld[key] = this.keyState[key];

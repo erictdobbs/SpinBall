@@ -19,7 +19,12 @@ class KeyboardHandler {
     isLeftPressed(): boolean {return this.keyState[Key.Left] || this.keyState[Key.A]}
     isRightPressed(): boolean {return this.keyState[Key.Right] || this.keyState[Key.D]}
     isDownPressed(): boolean {return this.keyState[Key.Down] || this.keyState[Key.S]}
-
+    isAnyPressed(): boolean {
+        for (let k in this.keyState) {
+            if (this.keyState[k]) return true;
+        }
+        return false;
+    }
 
     keyState = {};
     keyStateOld = {};

@@ -1,4 +1,4 @@
-var currentLevel;
+var currentLevels;
 window.onload = function () {
     var canvas = document.getElementById("canvas");
     view = new View(canvas);
@@ -6,7 +6,7 @@ window.onload = function () {
     document.onkeyup = keyboardState.handleKeyUp;
     window.onresize = function () { view.onResize(); };
     loadLevels();
-    currentLevel = levels[levels.length - 1];
+    currentLevels = new LevelSet(levels, 40);
     DrawLoop();
 };
 var lastUpdate = +(new Date());
@@ -16,10 +16,9 @@ function DrawLoop() {
     var now = +(new Date());
     if (now >= lastUpdate + msPerUpdate) {
         keyboardState.cycleKeyState();
-        currentLevel.Step((now - lastUpdate) / 1000);
+        currentLevels.Step((now - lastUpdate) / 1000);
         lastUpdate = now;
-        if (currentLevel.world)
-            view.draw(currentLevel.world);
+        currentLevels.Draw(view);
     }
     requestAnimationFrame(function () {
         DrawLoop();

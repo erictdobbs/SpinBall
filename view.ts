@@ -30,6 +30,7 @@ class View {
         this.ctx.rotate(-this.rotation);
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
+        this.scale = Math.max(this.canvas.width/40,this.canvas.height/20);
         this.ctx.rotate(Math.PI / 2);
         this.ctx.rotate(this.rotation);
     }
@@ -44,7 +45,8 @@ class View {
         return -(y - this.y) * this.scale - Math.sin(this.rotation) * this.height / 2 - Math.cos(this.rotation) * this.width / 2;
     }
 
-    draw(world: any) {
+    draw(level: Level) {
+        let world = level.world;
         this.ctx.clearRect(-this.width - this.height, -this.width - this.height, 2 * (this.width + this.height), 2 * (this.width + this.height));
         // draw a planck js world to screen
 
@@ -113,6 +115,26 @@ class View {
         this.ctx.lineWidth = 2;
         this.ctx.strokeStyle = this.ctx.fillStyle.toString().replace("0.2","0.5");
         this.ctx.stroke();
+    }
+
+    drawCenteredText(text: string, percentSize: number, percentDownScreen: number) {
+        var textHeight = this.height * percentSize;
+        this.ctx.font = textHeight + "px Arial";
+        var textWidth = this.ctx.measureText(text).width;
+        if (textWidth > this.width) {
+            var newSize = percentSize * this.width / textWidth - 0.01;
+            this.drawCenteredText(text, newSize, percentDownScreen);
+            return;
+        }
+        var x = this.width/2 - textWidth/2;
+        var y = (this.height - textHeight) * percentDownScreen + textHeight;
+        
+        this.ctx.rotate(-this.rotation-Math.PI/2);
+        this.ctx.fillStyle = "black";
+        this.ctx.fillText(text,x+2,y+2);
+        this.ctx.fillStyle = "white";
+        this.ctx.fillText(text,x,y);
+        this.ctx.rotate(this.rotation+Math.PI/2);
     }
 
 }

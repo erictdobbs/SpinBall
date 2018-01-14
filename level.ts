@@ -17,6 +17,10 @@ class Level {
     timerExtend: number = 30;
 
     Step(delta): void {
+        if (gameMode == Mode.edit) {
+            EditorTick();
+            return;
+        }
         if (this.world) {
             this.world.step(delta);
             this.OnWorldStep(this.world);
@@ -38,10 +42,12 @@ class Level {
         } else {
         }
 
+        if (keyboardState.isDownPressed() && gameMode == Mode.test) {
+            StartEditor();
+        }
+
         if (this.ball) {
             var cp = this.ball.getPosition();
-            view.setTranslation(cp.x, cp.y);
-
             var currentVelocity = this.ball.getLinearVelocity();
             var maxSpeed = 20;
             this.ball.setLinearVelocity(currentVelocity.clamp(maxSpeed));
@@ -243,7 +249,7 @@ function loadLevelTiles() {
     levelTiles = [
         new LevelTile("x", "Ball Start", (level,x,y) => {
             view.setTranslation(x, y);
-            var ball = level.world.createDynamicBody(planck.Vec2(x, y));
+            var ball = level.world.createDynamicBody(planck.Vec2(x+0.5, y));
             ball.setSleepingAllowed(false);
             ball.createFixture(planck.Circle(0.45), fds.ball);
             level.ball = ball;
@@ -263,6 +269,12 @@ function loadLevelTiles() {
         new LevelTile(".", "Pin", (level,x,y) => {
             level.AddPin(x + 0.5, y + 0.5);
         }),
+        new LevelTile("+", "Pin Cross", (level,x,y) => {
+            level.AddPin(x, y + 0.5); 
+            level.AddPin(x + 1, y + 0.5); 
+            level.AddPin(x + 0.5, y + 1); 
+            level.AddPin(x + 0.5, y);
+        }),
         new LevelTile(":", "Pin Vertical Pair", (level,x,y) => {
             level.AddPin(x + 0.5, y); 
             level.AddPin(x + 0.5, y + 1);
@@ -271,23 +283,17 @@ function loadLevelTiles() {
             level.AddPin(x, y + 0.5); 
             level.AddPin(x + 1, y + 0.5);
         }),
-        new LevelTile("+", "Pin Cross", (level,x,y) => {
-            level.AddPin(x, y + 0.5); 
-            level.AddPin(x + 1, y + 0.5); 
-            level.AddPin(x + 0.5, y + 1); 
-            level.AddPin(x + 0.5, y);
-        }),
         new LevelTile("◣", "Diagonal Up Left", (level,x,y) => {
             level.AddTriangle(x, y, 0);
         }),
         new LevelTile("◢", "Diagonal Up Right", (level,x,y) => {
             level.AddTriangle(x, y, Math.PI / 2);
         }),
-        new LevelTile("◥", "Diagonal Down Right", (level,x,y) => {
-            level.AddTriangle(x, y, Math.PI);
-        }),
         new LevelTile("◤", "Diagonal Down Left", (level,x,y) => {
             level.AddTriangle(x, y, -Math.PI / 2);
+        }),
+        new LevelTile("◥", "Diagonal Down Right", (level,x,y) => {
+            level.AddTriangle(x, y, Math.PI);
         }),
         new LevelTile("◟", "Curve Up Left", (level,x,y) => {
             level.AddCurve(x, y, 0);
@@ -295,11 +301,14 @@ function loadLevelTiles() {
         new LevelTile("◞", "Curve Up Right", (level,x,y) => {
             level.AddCurve(x, y, Math.PI / 2);
         }),
+        new LevelTile("◜", "Curve Down Left", (level,x,y) => {
+            level.AddCurve(x, y, -Math.PI / 2);
+        }),
         new LevelTile("◝", "Curve Down Right", (level,x,y) => {
             level.AddCurve(x, y, Math.PI);
         }),
-        new LevelTile("◜", "Curve Down Left", (level,x,y) => {
-            level.AddCurve(x, y, -Math.PI / 2);
+        new LevelTile("<", "Pusher Left", (level,x,y) => {
+            level.AddPusher(x, y, Direction.Left)
         }),
         new LevelTile(">", "Pusher Right", (level,x,y) => {
             level.AddPusher(x, y, Direction.Right)
@@ -307,15 +316,14 @@ function loadLevelTiles() {
         new LevelTile("^", "Pusher Up", (level,x,y) => {
             level.AddPusher(x, y, Direction.Up)
         }),
-        new LevelTile("<", "Pusher Left", (level,x,y) => {
-            level.AddPusher(x, y, Direction.Left)
-        }),
         new LevelTile("v", "Pusher Down", (level,x,y) => {
             level.AddPusher(x, y, Direction.Down)
         }),
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {
             level.AddBreakWall(x, y); 
             level.AddBreakWall(x + 1, y);
-        })
+        }),
+        
+        new LevelTile("_", "ERASER", (level,x,y)=>{})
     ];
 }

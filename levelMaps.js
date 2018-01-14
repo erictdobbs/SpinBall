@@ -16,9 +16,5 @@ function loadLevels() {
     levels.push(new Level(3, "\n##################\n#          \u25DD#gggg#\n# x         #o   #\n##########  #    #\n#\u25DC      \u25DD#  #   \u25E5#\n#        #  #    #\n#  o  o  #  #\u25E4   #\n#  #  #     #    #\n#\u25DF\u25DE#  #\u25DF   \u25DE#   \u25E5#\n####  #######    #\n#\u25DC    #\u25DC   \u25DD#\u25E4   #\n#    \u25DE#     #    #\n#  ####  #  #   \u25E5#\n#        #       #\n#\u25DF      \u25DE#\u25DF     \u25DE#\n##################\n", true));
     levels.push(new Level(4, "\n   ###################\n   #\u25DC         ##ggggg#\n   # ####### ###\u25DD   \u25DC#\n####v##### : : #  o  #\n#\u25DC      \u25DD#     #\u25DD   \u25DC#\n# ## ### #     #  .  #\n# ## # # #  x  #\u25DD   \u25DC#\n#\u25DF  \u25DE# # #######     #\n########v##    .     #\n    #\u25DC          o    #\n    # ## ##    .    \u25DE#\n    # ## #############\n    #\u25DF  \u25DE#\n    ######\n", true));
     levels.push(new Level(1, "\n#########\n#       # ############# ############\n#       # #          o# #          #\n# x #   # #           # #          #\n#####   # #           # #          #\n    #   # #    ###    ###   ####   #\n    #   ###    # #          # #g   #\n    #          # #          # #g   #\n    #          # #         o# #g   #\n    #         o# ############ #g   #\n    ############              ######\n", true));
-    //…:.+
-    //┌┐└┘
-    //◟◞◜◝
-    //◢◣◥◤
 }
 //# sourceMappingURL=levelMaps.js.map

@@ -10,15 +10,18 @@ class View {
     // game-space coords
     x: number = 0;
     y: number = 0;
+    targetX: number = 0;
+    targetY: number = 0;
 
     get width(): number { return this.canvas.width; }
     get height(): number { return this.canvas.height; }
+    targetScale: number = 50;
     scale: number = 50;
     private rotation: number = -Math.PI / 2;
 
     setTranslation(x: number, y: number) {
-        this.x = x;
-        this.y = y;
+        this.targetX = x;
+        this.targetY = y;
     }
 
     setRotation(r: number) {
@@ -30,11 +33,47 @@ class View {
         this.ctx.rotate(-this.rotation);
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
-        this.scale = Math.max(this.canvas.width/40,this.canvas.height/20);
         this.ctx.rotate(Math.PI / 2);
         this.ctx.rotate(this.rotation);
+        editorButtons = [];
     }
 
+    tickCamera(): void {
+        if (currentLevels && currentLevels.currentLevel && currentLevels.currentLevel.ball) {
+            var cp = currentLevels.currentLevel.ball.getPosition();
+            if (gameMode == Mode.edit) {
+                this.setTranslation(cp.x - editorPaneWidth / 2 / this.scale, cp.y);
+            } else {
+                this.setTranslation(cp.x, cp.y);
+            }
+        }
+        //}
+
+        if (gameMode == Mode.edit) this.targetScale = 15;
+        if (gameMode == Mode.test || gameMode == Mode.play) this.targetScale = Math.max(this.canvas.width / 40, this.canvas.height / 20);
+        var diff = this.targetScale - this.scale;
+        this.scale += diff * 0.04;
+        if (Math.abs(diff) < 0.1) this.scale = this.targetScale;
+
+        this.x += (this.targetX - this.x) * 0.1;
+        this.y += (this.targetY - this.y) * 0.1;
+    }
+
+
+    getMapCoordsFromScreenCoords(x: number, y: number): { x: number, y: number } {
+        var mapX = (x - this.width / 2) / this.scale + this.x;
+        var mapY = (y - this.height / 2) / -this.scale + this.y;
+        return { x: mapX, y: mapY };
+    }
+
+    getBottomLeftGameCoordOfMouseOverCell(): { x: number, y: number } {
+        let mouse = this.getMapCoordsFromScreenCoords(mouseHandler.mouseX, mouseHandler.mouseY);
+        let left = mouse.x + 0.5;
+        let bottom = mouse.y + 0.5;
+        left = Math.floor(left / 2) * 2;
+        bottom = Math.floor(bottom / 2) * 2;
+        return { x: left, y: bottom };
+    }
 
     mapX(x: number): number {
         //return x* this.scale;
@@ -45,9 +84,14 @@ class View {
         return -(y - this.y) * this.scale - Math.sin(this.rotation) * this.height / 2 - Math.cos(this.rotation) * this.width / 2;
     }
 
-    draw(level: Level) {
-        let world = level.world;
+    clear() {
         this.ctx.clearRect(-this.width - this.height, -this.width - this.height, 2 * (this.width + this.height), 2 * (this.width + this.height));
+    }
+
+    draw(level: Level) {
+        this.tickCamera();
+        let world = level.world;
+        
         // draw a planck js world to screen
 
         for (var b = world.getBodyList(); b; b = b.getNext()) {
@@ -96,6 +140,23 @@ class View {
             }
             this.ctx.translate(-this.mapX(p.x), -this.mapY(p.y));
         }
+
+        let cell = this.getBottomLeftGameCoordOfMouseOverCell();
+        if (gameMode == Mode.edit) {
+            this.highlightCell(cell.x - 0.5, cell.y - 0.5);
+            DrawEditorPane(this);
+        }
+    }
+
+    highlightCell(x: number, y: number) {
+        let vs = [{ x: x, y: y }, { x: x + 2, y: y }, { x: x + 2, y: y + 2 }, { x: x, y: y + 2 }];
+        this.ctx.fillStyle = "rgba(255,255,255,0.2)";
+        this.ctx.translate(this.mapX(0), this.mapY(0));
+        this.ctx.beginPath();
+        this.createPath(vs);
+        this.fill();
+        this.stroke();
+        this.ctx.translate(-this.mapX(0), -this.mapY(0));
     }
 
     createPath(vertices: any[]): void {
@@ -113,7 +174,7 @@ class View {
     }
     stroke(): void {
         this.ctx.lineWidth = 2;
-        this.ctx.strokeStyle = this.ctx.fillStyle.toString().replace("0.2","0.5");
+        this.ctx.strokeStyle = this.ctx.fillStyle.toString().replace("0.2", "0.5");
         this.ctx.stroke();
     }
 
@@ -121,20 +182,23 @@ class View {
         var textHeight = this.height * percentSize;
         this.ctx.font = textHeight + "px Arial";
         var textWidth = this.ctx.measureText(text).width;
-        if (textWidth > this.width) {
-            var newSize = percentSize * this.width / textWidth - 0.01;
+        let screenWidth = this.width - (Mode.edit == gameMode ? editorPaneWidth : 0);
+        let xOffset = (Mode.edit == gameMode ? editorPaneWidth : 0);
+        if (textWidth > screenWidth) {
+            var newSize = percentSize * screenWidth / textWidth - 0.01;
+            if (newSize < 0) return;
             this.drawCenteredText(text, newSize, percentDownScreen);
             return;
         }
-        var x = this.width/2 - textWidth/2;
+        var x = screenWidth / 2 - textWidth / 2 + xOffset;
         var y = (this.height - textHeight) * percentDownScreen + textHeight;
-        
-        this.ctx.rotate(-this.rotation-Math.PI/2);
+
+        this.ctx.rotate(-this.rotation - Math.PI / 2);
         this.ctx.fillStyle = "black";
-        this.ctx.fillText(text,x+2,y+2);
+        this.ctx.fillText(text, x + 2, y + 2);
         this.ctx.fillStyle = "white";
-        this.ctx.fillText(text,x,y);
-        this.ctx.rotate(this.rotation+Math.PI/2);
+        this.ctx.fillText(text, x, y);
+        this.ctx.rotate(this.rotation + Math.PI / 2);
     }
 
 }

@@ -1,12 +1,12 @@
 
-class ButtonBase {
+class BaseMenuElement {
     constructor(
         public x: number,
         public y: number,
         public width: number,
         public height: number,
         public text: string,
-        public centered: boolean = true
+        public contentCentered: boolean = true
     ) { }
     labelOnly: boolean = false;
     isMouseWithin(): boolean {
@@ -37,7 +37,7 @@ class ButtonBase {
 
         let x = this.x + 5;
         let y = this.y + this.height * .75;
-        if (this.centered) {
+        if (this.contentCentered) {
             let textWidth = Math.min(maxWidth, view.ctx.measureText(this.text).width);
             let extraSpace = maxWidth - textWidth;
             x += extraSpace / 2;
@@ -50,7 +50,7 @@ class ButtonBase {
     onClick(): void { };
 }
 
-class MenuLabel extends ButtonBase {
+class MenuLabel extends BaseMenuElement {
     constructor(
         public x: number,
         public y: number,
@@ -60,8 +60,56 @@ class MenuLabel extends ButtonBase {
     ) { super(x, y, width, height, text); this.labelOnly = true; }
 }
 
+class EditorButtonElement extends BaseMenuElement {
+    constructor(
+        public x: number,
+        public y: number,
+        public width: number,
+        public height: number,
+        public index: number,
+        public text: string,
+        public isActive: boolean
+    ) {
+        super(x, y, width, height, text);
+    }
+    onClick(): void {
+        for (let b of editorButtons) if (b instanceof EditorButtonElement) b.isActive = false;
+        this.isActive = true;
+    }
+}
 
-var currentMenu: ButtonBase[] = [];
+class EditorButton extends BaseMenuElement {
+    constructor(
+        public x: number,
+        public y: number,
+        public width: number,
+        public height: number,
+        public text: string,
+        public action: () => void
+    ) {
+        super(x, y, width, height, text);
+    }
+    onClick(): void {
+        if (mouseHandler.isMouseLeftChanged) {
+            mouseHandler.isMouseLeftChanged = false;
+            mouseHandler.isMouseLeftClicked = false;
+            mouseHandler.m_isMouseLeftClicked = false;
+            this.action();
+        }
+    }
+}
+// class MenuRow {
+//     constructor(public elements: BaseMenuElement[]) {}
+//     draw(view: View): void { for (let e of this.elements) e.draw(view); }
+// }
+
+// class Menu {
+//     constructor(public elements: BaseMenuElement[], public margin: number) {}
+// }
+
+
+
+var currentMenu: BaseMenuElement[] = [];
 
 
 function MainMenu() {
@@ -72,7 +120,7 @@ function MainMenu() {
     let y = 95;
     let difficulties = ["Training", "Easy", "Medium", "Hard", "Special"];
     for (let i = 0; i < difficulties.length; i++) {
-        let b = new ButtonBase(50, y, 200, 40, difficulties[i], false);
+        let b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
         b.onClick = () => {
             currentMenu = [];
             currentLevels = new LevelSet(levels.filter(l => l.difficulty == i + 1), 40);
@@ -82,7 +130,7 @@ function MainMenu() {
     }
     currentMenu.push(new MenuLabel(30, y, 240, 120, ""));
     y += 65;
-    let editor = new ButtonBase(50, y, 200, 40, "Level Editor", false);
+    let editor = new BaseMenuElement(50, y, 200, 40, "Level Editor", false);
     editor.onClick = () => {
         currentMenu = [];
         StartEditor();

@@ -7,8 +7,8 @@ enum Mode {
 var gameMode = Mode.play;
 var levelString = `
 #####
-#   #
-# x #
+#___#
+#_x_#
 #####
 `;
 
@@ -64,7 +64,7 @@ function ReplaceChar(str: string, newChar: string, stringX: number, stringY: num
         view.y -= 2;
     }
     for (; stringX < 0; stringX++) {
-        str = " " + str;
+        str = "_" + str;
         str = str.replace(/\r?\n/g, '\n ');
         view.x += 2;
     }
@@ -72,53 +72,15 @@ function ReplaceChar(str: string, newChar: string, stringX: number, stringY: num
 
     for (; stringY >= lines.length; lines.push(''));
     let lineToChange = lines[stringY];
-    for (; stringX >= lineToChange.length; lineToChange += ' ');
+    for (; stringX >= lineToChange.length; lineToChange += '_');
     lineToChange = lineToChange.substr(0, stringX) + newChar + lineToChange.substr(stringX + newChar.length);
     lines[stringY] = lineToChange;
     return lines.join('\n');
 }
 
 
-class EditorButtonElement extends ButtonBase {
-    constructor(
-        public x: number,
-        public y: number,
-        public width: number,
-        public height: number,
-        public index: number,
-        public text: string,
-        public isActive: boolean
-    ) {
-        super(x, y, width, height, text);
-    }
-    onClick(): void {
-        for (let b of editorButtons) if (b instanceof EditorButtonElement) b.isActive = false;
-        this.isActive = true;
-    }
-}
 
-class EditorButton extends ButtonBase {
-    constructor(
-        public x: number,
-        public y: number,
-        public width: number,
-        public height: number,
-        public text: string,
-        public action: () => void
-    ) {
-        super(x, y, width, height, text);
-    }
-    onClick(): void {
-        if (mouseHandler.isMouseLeftChanged) {
-            mouseHandler.isMouseLeftChanged = false;
-            mouseHandler.isMouseLeftClicked = false;
-            mouseHandler.m_isMouseLeftClicked = false;
-            this.action();
-        }
-    }
-}
-
-var editorButtons: ButtonBase[] = [];
+var editorButtons: BaseMenuElement[] = [];
 var editorPaneWidth: number = 350;
 var editorTestCompleteTime: number = 0;
 function DrawEditorPane(view: View) {

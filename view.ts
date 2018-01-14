@@ -104,27 +104,27 @@ class View {
                 var userData = f.getUserData();
 
                 if (type == "circle") {
-                    this.ctx.fillStyle = "rgba(0,0,255,0.2)";
-                    if (userData == "bouncer") this.ctx.fillStyle = "rgba(255,0,0,0.2)";
-                    if (userData == "ball") this.ctx.fillStyle = "rgba(0,0,0,0.2)";
+                    this.ctx.fillStyle = "rgba(0,0,200,0.6)";
+                    if (userData == "bouncer") this.ctx.fillStyle = "rgba(200,0,0,0.6)";
+                    if (userData == "ball") this.ctx.fillStyle = "rgba(0,0,0,0.6)";
                     var r = shape.m_radius;
                     this.ctx.beginPath();
                     this.ctx.arc(0, 0, r * this.scale, 0, Math.PI * 2);
                     this.fill();
                     this.stroke();
                 } else if (userData == "goal") {
-                    this.ctx.fillStyle = "rgba(0,255,0,0.2)";
+                    this.ctx.fillStyle = "rgba(0,200,0,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
                 } else if (userData == "pusher") {
-                    this.ctx.fillStyle = "rgba(255,0,128,0.2)";
+                    this.ctx.fillStyle = "rgba(200,0,128,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
-                    this.ctx.fillStyle = "rgba(0,0,255,0.2)";
+                    this.ctx.fillStyle = "rgba(0,0,200,0.6)";
                     this.createPath(b.userData.direction.innerArrow);
                     this.fill();
                 } else if (userData == "breakWall") {
-                    this.ctx.fillStyle = "rgba(196,92,0,0.2)";
+                    this.ctx.fillStyle = "rgba(196,92,0,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
                     this.stroke();
@@ -132,7 +132,7 @@ class View {
                     // need rotate to handle rotated bodies
                     this.ctx.rotate(-r);
                     this.createPath(shape.m_vertices);
-                    this.ctx.fillStyle = "rgba(0,0,255,0.2)";
+                    this.ctx.fillStyle = "rgba(0,0,200,0.6)";
                     this.fill();
                     this.stroke();
                     this.ctx.rotate(r);
@@ -150,7 +150,7 @@ class View {
 
     highlightCell(x: number, y: number) {
         let vs = [{ x: x, y: y }, { x: x + 2, y: y }, { x: x + 2, y: y + 2 }, { x: x, y: y + 2 }];
-        this.ctx.fillStyle = "rgba(255,255,255,0.2)";
+        this.ctx.fillStyle = "rgba(255,255,255,0.6)";
         this.ctx.translate(this.mapX(0), this.mapY(0));
         this.ctx.beginPath();
         this.createPath(vs);
@@ -174,7 +174,7 @@ class View {
     }
     stroke(): void {
         this.ctx.lineWidth = 2;
-        this.ctx.strokeStyle = this.ctx.fillStyle.toString().replace("0.2", "0.5");
+        this.ctx.strokeStyle = this.ctx.fillStyle.toString().replace("0.6", "1.0");
         this.ctx.stroke();
     }
 

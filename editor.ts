@@ -33,8 +33,8 @@ function EditorTick() {
         let char = levelTile.character;
         if (char == "x" && !mouseHandler.isMouseLeftChanged) return;
         let cell = view.getBottomLeftGameCoordOfMouseOverCell();
-        let stringX = cell.x / 2;
-        let stringY = -cell.y / 2;
+        let stringX = (cell.x) / 2;
+        let stringY = -(cell.y) / 2;
 
         if (char == "x") levelString = levelString.replace('x', ' ');
         levelString = ReplaceChar(levelString, char, stringX, stringY);
@@ -54,8 +54,11 @@ function EditorTick() {
             let tileIndex = levelTiles.indexOf(tile);
             editorButtons[tileIndex].onClick();
         } catch (e) { }
-
     }
+    if (keyboardState.isLeftPressed()) view.offsetX -= 1;
+    if (keyboardState.isRightPressed()) view.offsetX += 1;
+    if (keyboardState.isDownPressed()) view.offsetY -= 1;
+    if (keyboardState.isUpPressed()) view.offsetY += 1;
 }
 
 function ReplaceChar(str: string, newChar: string, stringX: number, stringY: number): string {

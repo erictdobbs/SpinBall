@@ -12,6 +12,8 @@ class View {
     y: number = 0;
     targetX: number = 0;
     targetY: number = 0;
+    offsetX: number = 0;
+    offsetY: number = 0;
 
     get width(): number { return this.canvas.width; }
     get height(): number { return this.canvas.height; }
@@ -55,8 +57,12 @@ class View {
         this.scale += diff * 0.04;
         if (Math.abs(diff) < 0.1) this.scale = this.targetScale;
 
-        this.x += (this.targetX - this.x) * 0.1;
-        this.y += (this.targetY - this.y) * 0.1;
+        if (gameMode !== Mode.edit) {
+            this.offsetX = 0;
+            this.offsetY = 0;
+        }
+        this.x += (this.targetX + this.offsetX - this.x) * 0.1;
+        this.y += (this.targetY + this.offsetY - this.y) * 0.1;
     }
 
 
@@ -68,8 +74,8 @@ class View {
 
     getBottomLeftGameCoordOfMouseOverCell(): { x: number, y: number } {
         let mouse = this.getMapCoordsFromScreenCoords(mouseHandler.mouseX, mouseHandler.mouseY);
-        let left = mouse.x + 0.5;
-        let bottom = mouse.y + 0.5;
+        let left = mouse.x+1;
+        let bottom = mouse.y+1;
         left = Math.floor(left / 2) * 2;
         bottom = Math.floor(bottom / 2) * 2;
         return { x: left, y: bottom };
@@ -143,13 +149,13 @@ class View {
 
         let cell = this.getBottomLeftGameCoordOfMouseOverCell();
         if (gameMode == Mode.edit) {
-            this.highlightCell(cell.x - 0.5, cell.y - 0.5);
+            this.highlightCell(cell.x, cell.y);
             DrawEditorPane(this);
         }
     }
 
     highlightCell(x: number, y: number) {
-        let vs = [{ x: x, y: y }, { x: x + 2, y: y }, { x: x + 2, y: y + 2 }, { x: x, y: y + 2 }];
+        let vs = [{ x: x-1, y: y-1 }, { x: x + 1, y: y-1 }, { x: x + 1, y: y + 1 }, { x: x-1, y: y + 1 }];
         this.ctx.fillStyle = "rgba(255,255,255,0.6)";
         this.ctx.translate(this.mapX(0), this.mapY(0));
         this.ctx.beginPath();

@@ -78,8 +78,8 @@ function EditorTick() {
         if (char == "x" && !mouseHandler.isMouseLeftChanged)
             return;
         var cell = view.getBottomLeftGameCoordOfMouseOverCell();
-        var stringX = cell.x / 2;
-        var stringY = -cell.y / 2;
+        var stringX = (cell.x) / 2;
+        var stringY = -(cell.y) / 2;
         if (char == "x")
             levelString = levelString.replace('x', ' ');
         levelString = ReplaceChar(levelString, char, stringX, stringY);
@@ -103,6 +103,14 @@ function EditorTick() {
         }
         catch (e) { }
     }
+    if (keyboardState.isLeftPressed())
+        view.offsetX -= 1;
+    if (keyboardState.isRightPressed())
+        view.offsetX += 1;
+    if (keyboardState.isDownPressed())
+        view.offsetY -= 1;
+    if (keyboardState.isUpPressed())
+        view.offsetY += 1;
 }
 function ReplaceChar(str, newChar, stringX, stringY) {
     for (; stringY < 0; stringY++) {
@@ -201,6 +209,7 @@ var KeyboardHandler = (function () {
     KeyboardHandler.prototype.isLeftPressed = function () { return this.keyState[Key.Left] || this.keyState[Key.A]; };
     KeyboardHandler.prototype.isRightPressed = function () { return this.keyState[Key.Right] || this.keyState[Key.D]; };
     KeyboardHandler.prototype.isDownPressed = function () { return this.keyState[Key.Down] || this.keyState[Key.S]; };
+    KeyboardHandler.prototype.isUpPressed = function () { return this.keyState[Key.Up] || this.keyState[Key.W]; };
     KeyboardHandler.prototype.isAnyPressed = function () {
         for (var k in this.keyState) {
             if (this.keyState[k])
@@ -300,6 +309,25 @@ var Level = (function () {
             var bWall = world.createBody(Vec2(x, y));
             bWall.createFixture(pl.Box(0.5, 0.5), fds.breakWall);
         }
+        world.on('pre-solve', function (contact) {
+            var currentLevel = currentLevels.currentLevel;
+            var fA = contact.getFixtureA(), bA = fA.getBody();
+            var fB = contact.getFixtureB(), bB = fB.getBody();
+            var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
+            var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
+            if (myBall && myBreakWall) {
+                var speed = myBall.getLinearVelocity().length();
+                if (speed > 4) {
+                    setTimeout(function () {
+                        try {
+                            currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0, 0));
+                            currentLevel.world.destroyBody(myBreakWall);
+                        }
+                        catch (e) { }
+                    }, 1);
+                }
+            }
+        });
         world.on('post-solve', function (contact) {
             var currentLevel = currentLevels.currentLevel;
             var fA = contact.getFixtureA(), bA = fA.getBody();
@@ -307,7 +335,6 @@ var Level = (function () {
             var myBouncer = fA.getUserData() == fds.bouncer.userData && bA || fB.getUserData() == fds.bouncer.userData && bB;
             var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
             var myGoal = fA.getUserData() == fds.goal.userData && bA || fB.getUserData() == fds.goal.userData && bB;
-            var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
             if (myBouncer && myBall) {
                 var pBall = myBall.getPosition();
                 var pBouncer = myBouncer.getPosition();
@@ -320,15 +347,6 @@ var Level = (function () {
                 var completionTime = +(new Date()) - currentLevel.startTime;
                 currentLevel.complete = true;
                 currentLevel.secondsToComplete = Math.floor(completionTime) / 1000;
-            }
-            if (myBall && myBreakWall) {
-                var speed = myBall.getLinearVelocity().length();
-                if (speed > 3) {
-                    setTimeout(function () { try {
-                        currentLevel.world.destroyBody(myBreakWall);
-                    }
-                    catch (e) { } }, 1);
-                }
             }
         });
         world.on('begin-contact', function (contact) {
@@ -368,20 +386,18 @@ var Level = (function () {
         pin.createFixture(planck.Circle(0.25), fds.pin);
     };
     Level.prototype.AddTriangle = function (x, y, rotation) {
-        x += 0.5;
-        y += 0.5;
         var wall = this.world.createBody(planck.Vec2(x, y), rotation);
         var vs = [planck.Vec2(1, -1), planck.Vec2(-1, 1), planck.Vec2(-1, -1)];
         wall.createFixture(planck.Polygon(vs), fds.wall);
     };
     Level.prototype.AddPusher = function (x, y, direction) {
-        var pusher = this.world.createBody(planck.Vec2(x + 0.5, y + 0.5));
+        var pusher = this.world.createBody(planck.Vec2(x, y));
         pusher.userData = { direction: direction, active: false };
         pusher.createFixture(fds.pusher);
         this.pushers.push(pusher);
     };
     Level.prototype.AddCurve = function (x, y, rotation) {
-        var wall = this.world.createBody(planck.Vec2(x + 0.5, y + 0.5), rotation);
+        var wall = this.world.createBody(planck.Vec2(x, y), rotation);
         var vs = [];
         var segments = 10;
         for (var i = 0; i <= segments; i++) {
@@ -422,12 +438,12 @@ var Direction = (function () {
         if (!y)
             this.innerArrow.push({ x: 0, y: x * 0.5 }, { x: 0, y: -x * 0.5 });
     }
-    Direction.Left = new Direction(-1, 0);
-    Direction.Right = new Direction(1, 0);
-    Direction.Up = new Direction(0, 1);
-    Direction.Down = new Direction(0, -1);
     return Direction;
 }());
+Direction.Left = new Direction(-1, 0);
+Direction.Right = new Direction(1, 0);
+Direction.Up = new Direction(0, 1);
+Direction.Down = new Direction(0, -1);
 var LevelTile = (function () {
     function LevelTile(character, name, addToLevel) {
         this.character = character;
@@ -451,39 +467,39 @@ function loadLevelTiles() {
     levelTiles = [
         new LevelTile("x", "Ball Start", function (level, x, y) {
             view.setTranslation(x, y);
-            var ball = level.world.createDynamicBody(planck.Vec2(x + 0.5, y));
+            var ball = level.world.createDynamicBody(planck.Vec2(x, y - 0.5));
             ball.setSleepingAllowed(false);
             ball.createFixture(planck.Circle(0.45), fds.ball);
             level.ball = ball;
         }),
         new LevelTile("#", "Wall", function (level, x, y) {
-            var wall = level.world.createBody(planck.Vec2(x + 0.5, y + 0.5));
+            var wall = level.world.createBody(planck.Vec2(x, y));
             wall.createFixture(planck.Box(1, 1), fds.wall);
         }),
         new LevelTile("g", "Goal", function (level, x, y) {
-            var goal = level.world.createBody(planck.Vec2(x + 0.5, y + 0.5));
+            var goal = level.world.createBody(planck.Vec2(x, y));
             goal.createFixture(planck.Box(1, 1), fds.goal);
         }),
         new LevelTile("o", "Bouncer", function (level, x, y) {
-            var bouncer = level.world.createBody(planck.Vec2(x + 0.5, y + 0.5));
+            var bouncer = level.world.createBody(planck.Vec2(x, y));
             bouncer.createFixture(planck.Circle(1), fds.bouncer);
         }),
         new LevelTile(".", "Pin", function (level, x, y) {
-            level.AddPin(x + 0.5, y + 0.5);
+            level.AddPin(x, y);
         }),
         new LevelTile("+", "Pin Cross", function (level, x, y) {
-            level.AddPin(x, y + 0.5);
-            level.AddPin(x + 1, y + 0.5);
-            level.AddPin(x + 0.5, y + 1);
+            level.AddPin(x - 0.5, y);
             level.AddPin(x + 0.5, y);
+            level.AddPin(x, y + 0.5);
+            level.AddPin(x, y - 0.5);
         }),
         new LevelTile(":", "Pin Vertical Pair", function (level, x, y) {
-            level.AddPin(x + 0.5, y);
-            level.AddPin(x + 0.5, y + 1);
+            level.AddPin(x, y - 0.5);
+            level.AddPin(x, y + 0.5);
         }),
         new LevelTile("…", "Pin Horizontal Pair", function (level, x, y) {
-            level.AddPin(x, y + 0.5);
-            level.AddPin(x + 1, y + 0.5);
+            level.AddPin(x - 0.5, y);
+            level.AddPin(x + 0.5, y);
         }),
         new LevelTile("◣", "Diagonal Up Left", function (level, x, y) {
             level.AddTriangle(x, y, 0);
@@ -522,8 +538,8 @@ function loadLevelTiles() {
             level.AddPusher(x, y, Direction.Down);
         }),
         new LevelTile("m", "Breakwall Pair Bottom", function (level, x, y) {
-            level.AddBreakWall(x, y);
-            level.AddBreakWall(x + 1, y);
+            level.AddBreakWall(x - 0.5, y - 0.5);
+            level.AddBreakWall(x + 0.5, y - 0.5);
         }),
         new LevelTile("_", "ERASER", function (level, x, y) { })
     ];
@@ -845,27 +861,29 @@ var BaseMenuElement = (function () {
 var MenuLabel = (function (_super) {
     __extends(MenuLabel, _super);
     function MenuLabel(x, y, width, height, text) {
-        _super.call(this, x, y, width, height, text);
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.text = text;
-        this.labelOnly = true;
+        var _this = _super.call(this, x, y, width, height, text) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.width = width;
+        _this.height = height;
+        _this.text = text;
+        _this.labelOnly = true;
+        return _this;
     }
     return MenuLabel;
 }(BaseMenuElement));
 var EditorButtonElement = (function (_super) {
     __extends(EditorButtonElement, _super);
     function EditorButtonElement(x, y, width, height, index, text, isActive) {
-        _super.call(this, x, y, width, height, text);
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.index = index;
-        this.text = text;
-        this.isActive = isActive;
+        var _this = _super.call(this, x, y, width, height, text) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.width = width;
+        _this.height = height;
+        _this.index = index;
+        _this.text = text;
+        _this.isActive = isActive;
+        return _this;
     }
     EditorButtonElement.prototype.onClick = function () {
         for (var _i = 0, editorButtons_3 = editorButtons; _i < editorButtons_3.length; _i++) {
@@ -880,13 +898,14 @@ var EditorButtonElement = (function (_super) {
 var EditorButton = (function (_super) {
     __extends(EditorButton, _super);
     function EditorButton(x, y, width, height, text, action) {
-        _super.call(this, x, y, width, height, text);
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-        this.text = text;
-        this.action = action;
+        var _this = _super.call(this, x, y, width, height, text) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.width = width;
+        _this.height = height;
+        _this.text = text;
+        _this.action = action;
+        return _this;
     }
     EditorButton.prototype.onClick = function () {
         if (mouseHandler.isMouseLeftChanged) {
@@ -906,7 +925,7 @@ function MainMenu() {
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     var y = 95;
     var difficulties = ["Training", "Easy", "Medium", "Hard", "Special"];
-    var _loop_1 = function(i) {
+    var _loop_1 = function (i) {
         var b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
         b.onClick = function () {
             currentMenu = [];
@@ -1072,6 +1091,8 @@ var View = (function () {
         this.y = 0;
         this.targetX = 0;
         this.targetY = 0;
+        this.offsetX = 0;
+        this.offsetY = 0;
         this.targetScale = 50;
         this.scale = 50;
         this.rotation = -Math.PI / 2;
@@ -1123,8 +1144,12 @@ var View = (function () {
         this.scale += diff * 0.04;
         if (Math.abs(diff) < 0.1)
             this.scale = this.targetScale;
-        this.x += (this.targetX - this.x) * 0.1;
-        this.y += (this.targetY - this.y) * 0.1;
+        if (gameMode !== Mode.edit) {
+            this.offsetX = 0;
+            this.offsetY = 0;
+        }
+        this.x += (this.targetX + this.offsetX - this.x) * 0.1;
+        this.y += (this.targetY + this.offsetY - this.y) * 0.1;
     };
     View.prototype.getMapCoordsFromScreenCoords = function (x, y) {
         var mapX = (x - this.width / 2) / this.scale + this.x;
@@ -1133,8 +1158,8 @@ var View = (function () {
     };
     View.prototype.getBottomLeftGameCoordOfMouseOverCell = function () {
         var mouse = this.getMapCoordsFromScreenCoords(mouseHandler.mouseX, mouseHandler.mouseY);
-        var left = mouse.x + 0.5;
-        var bottom = mouse.y + 0.5;
+        var left = mouse.x + 1;
+        var bottom = mouse.y + 1;
         left = Math.floor(left / 2) * 2;
         bottom = Math.floor(bottom / 2) * 2;
         return { x: left, y: bottom };
@@ -1203,12 +1228,12 @@ var View = (function () {
         }
         var cell = this.getBottomLeftGameCoordOfMouseOverCell();
         if (gameMode == Mode.edit) {
-            this.highlightCell(cell.x - 0.5, cell.y - 0.5);
+            this.highlightCell(cell.x, cell.y);
             DrawEditorPane(this);
         }
     };
     View.prototype.highlightCell = function (x, y) {
-        var vs = [{ x: x, y: y }, { x: x + 2, y: y }, { x: x + 2, y: y + 2 }, { x: x, y: y + 2 }];
+        var vs = [{ x: x - 1, y: y - 1 }, { x: x + 1, y: y - 1 }, { x: x + 1, y: y + 1 }, { x: x - 1, y: y + 1 }];
         this.ctx.fillStyle = "rgba(255,255,255,0.6)";
         this.ctx.translate(this.mapX(0), this.mapY(0));
         this.ctx.beginPath();

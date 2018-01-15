@@ -93,6 +93,25 @@ class Level {
         }
 
 
+        world.on('pre-solve', function (contact) {
+            var currentLevel = currentLevels.currentLevel;
+            var fA = contact.getFixtureA(), bA = fA.getBody();
+            var fB = contact.getFixtureB(), bB = fB.getBody();
+            var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
+            var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
+
+            if (myBall && myBreakWall) {
+                var speed = myBall.getLinearVelocity().length();
+                if (speed > 4) {
+                    setTimeout(() => {try { 
+                        currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0,0));
+                        currentLevel.world.destroyBody(myBreakWall);
+                    } catch (e) { }}, 1);
+                }
+            }
+        });
+
+
         world.on('post-solve', function (contact) {
             var currentLevel = currentLevels.currentLevel;
             var fA = contact.getFixtureA(), bA = fA.getBody();
@@ -100,8 +119,7 @@ class Level {
             var myBouncer = fA.getUserData() == fds.bouncer.userData && bA || fB.getUserData() == fds.bouncer.userData && bB;
             var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
             var myGoal = fA.getUserData() == fds.goal.userData && bA || fB.getUserData() == fds.goal.userData && bB;
-            var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
-
+            
             if (myBouncer && myBall) {
                 var pBall = myBall.getPosition();
                 var pBouncer = myBouncer.getPosition();
@@ -115,13 +133,6 @@ class Level {
                 var completionTime = +(new Date()) - currentLevel.startTime;
                 currentLevel.complete = true;
                 currentLevel.secondsToComplete = Math.floor(completionTime) / 1000;
-            }
-
-            if (myBall && myBreakWall) {
-                var speed = myBall.getLinearVelocity().length();
-                if (speed > 3) {
-                    setTimeout(() => {try { currentLevel.world.destroyBody(myBreakWall);} catch (e) { }}, 1);
-                }
             }
         });
 
@@ -168,19 +179,18 @@ class Level {
         pin.createFixture(planck.Circle(0.25), fds.pin);
     }
     AddTriangle(x, y, rotation: number) {
-        x += 0.5; y += 0.5
         var wall = this.world.createBody(planck.Vec2(x, y), rotation);
         var vs = [planck.Vec2(1, -1), planck.Vec2(-1, 1), planck.Vec2(-1, -1)];
         wall.createFixture(planck.Polygon(vs), fds.wall);
     }
     AddPusher(x, y, direction: Direction) {
-        var pusher = this.world.createBody(planck.Vec2(x + 0.5, y + 0.5));
+        var pusher = this.world.createBody(planck.Vec2(x, y));
         pusher.userData = { direction: direction, active: false };
         pusher.createFixture(fds.pusher);
         this.pushers.push(pusher);
     }
     AddCurve(x, y, rotation: number) {
-        var wall = this.world.createBody(planck.Vec2(x + 0.5, y + 0.5), rotation);
+        var wall = this.world.createBody(planck.Vec2(x, y), rotation);
         var vs = [];
         var segments = 10;
         for (var i = 0; i <= segments; i++) {
@@ -249,39 +259,39 @@ function loadLevelTiles() {
     levelTiles = [
         new LevelTile("x", "Ball Start", (level,x,y) => {
             view.setTranslation(x, y);
-            var ball = level.world.createDynamicBody(planck.Vec2(x+0.5, y));
+            var ball = level.world.createDynamicBody(planck.Vec2(x, y-0.5));
             ball.setSleepingAllowed(false);
             ball.createFixture(planck.Circle(0.45), fds.ball);
             level.ball = ball;
         }),
         new LevelTile("#", "Wall", (level,x,y) => {
-            var wall = level.world.createBody(planck.Vec2(x+0.5, y+0.5));
+            var wall = level.world.createBody(planck.Vec2(x, y));
             wall.createFixture(planck.Box(1, 1), fds.wall);
         }),
         new LevelTile("g", "Goal", (level,x,y) => {
-            var goal = level.world.createBody(planck.Vec2(x+0.5, y+0.5));
+            var goal = level.world.createBody(planck.Vec2(x, y));
             goal.createFixture(planck.Box(1, 1), fds.goal);
         }),
         new LevelTile("o", "Bouncer", (level,x,y) => {
-            var bouncer = level.world.createBody(planck.Vec2(x+0.5, y+0.5));
+            var bouncer = level.world.createBody(planck.Vec2(x, y));
             bouncer.createFixture(planck.Circle(1), fds.bouncer);
         }),
         new LevelTile(".", "Pin", (level,x,y) => {
-            level.AddPin(x + 0.5, y + 0.5);
+            level.AddPin(x, y);
         }),
         new LevelTile("+", "Pin Cross", (level,x,y) => {
+            level.AddPin(x - 0.5, y); 
+            level.AddPin(x + 0.5, y); 
             level.AddPin(x, y + 0.5); 
-            level.AddPin(x + 1, y + 0.5); 
-            level.AddPin(x + 0.5, y + 1); 
-            level.AddPin(x + 0.5, y);
+            level.AddPin(x, y - 0.5);
         }),
         new LevelTile(":", "Pin Vertical Pair", (level,x,y) => {
-            level.AddPin(x + 0.5, y); 
-            level.AddPin(x + 0.5, y + 1);
+            level.AddPin(x, y - 0.5); 
+            level.AddPin(x, y + 0.5);
         }),
         new LevelTile("…", "Pin Horizontal Pair", (level,x,y) => {
-            level.AddPin(x, y + 0.5); 
-            level.AddPin(x + 1, y + 0.5);
+            level.AddPin(x - 0.5, y); 
+            level.AddPin(x + 0.5, y);
         }),
         new LevelTile("◣", "Diagonal Up Left", (level,x,y) => {
             level.AddTriangle(x, y, 0);
@@ -320,8 +330,8 @@ function loadLevelTiles() {
             level.AddPusher(x, y, Direction.Down)
         }),
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {
-            level.AddBreakWall(x, y); 
-            level.AddBreakWall(x + 1, y);
+            level.AddBreakWall(x - 0.5, y - 0.5); 
+            level.AddBreakWall(x + 0.5, y - 0.5);
         }),
         
         new LevelTile("_", "ERASER", (level,x,y)=>{})

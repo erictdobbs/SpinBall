@@ -17,7 +17,7 @@ window.onload = () => {
     canvas.oncontextmenu = function (e) { e.preventDefault(); };
 
     window.onresize = () => {view.onResize();};
-    loadLevels();
+    //loadLevels();
     //currentLevels = new LevelSet(levels, 40);
     //StartEditor();
     MainMenu();

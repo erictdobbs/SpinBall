@@ -111,7 +111,7 @@ class View {
 
                 if (type == "circle") {
                     this.ctx.fillStyle = "rgba(0,0,200,0.6)";
-                    if (userData == "bouncer") this.ctx.fillStyle = "rgba(200,0,0,0.6)";
+                    if (userData == "bouncer") this.ctx.fillStyle = "rgba(200,0,200,0.6)";
                     if (userData == "ball") this.ctx.fillStyle = "rgba(0,0,0,0.6)";
                     var r = shape.m_radius;
                     this.ctx.beginPath();
@@ -120,6 +120,10 @@ class View {
                     this.stroke();
                 } else if (userData == "goal") {
                     this.ctx.fillStyle = "rgba(0,200,0,0.6)";
+                    this.createPath(shape.m_vertices);
+                    this.fill();
+                } else if (userData == "rotationLock" && gameMode == Mode.edit) {
+                    this.ctx.fillStyle = "rgba(255,255,255,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
                 } else if (userData == "pusher") {
@@ -151,6 +155,10 @@ class View {
         if (gameMode == Mode.edit) {
             this.highlightCell(cell.x, cell.y);
             DrawEditorPane(this);
+        }
+
+        if (level.tip.length && currentLevels.levelStartTime <= 0 && !level.complete) {
+            this.drawCenteredText(level.tip, 0.05, 0.95);
         }
     }
 

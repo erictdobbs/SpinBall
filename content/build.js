@@ -17,7 +17,6 @@ window.onload = function () {
     canvas.addEventListener("touchend", mouseHandler.onMouseUp, false);
     canvas.oncontextmenu = function (e) { e.preventDefault(); };
     window.onresize = function () { view.onResize(); };
-    loadLevels();
     MainMenu();
     MainLoop();
 };
@@ -59,8 +58,8 @@ var levelString = "\n#####\n#___#\n#_x_#\n#####\n";
 function StartEditor() {
     gameMode = Mode.edit;
     currentLevels = new LevelSet([
-        new Level(0, levelString, true)
-    ], 0);
+        new Level(0, 0, levelString)
+    ]);
 }
 function EditorTick() {
     if (mouseHandler.isMouseLeftClicked) {
@@ -111,6 +110,8 @@ function EditorTick() {
         view.offsetY -= 1;
     if (keyboardState.isUpPressed())
         view.offsetY += 1;
+    if (keyboardState.isSpacePressed())
+        gameMode = Mode.test;
 }
 function ReplaceChar(str, newChar, stringX, stringY) {
     for (; stringY < 0; stringY++) {
@@ -148,7 +149,7 @@ function DrawEditorPane(view) {
         for (var tIdx = 0; tIdx < levelTiles.length; tIdx++) {
             var t = levelTiles[tIdx];
             var x = margin + (margin + buttonWidth) * (tIdx % columns);
-            var y = margin + (margin + buttonHeight) * (1 + Math.floor(tIdx / columns));
+            var y = margin + (margin + buttonHeight) * (0 + Math.floor(tIdx / columns));
             var b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, tIdx, t.name, tIdx == 0);
             editorButtons.push(b);
         }
@@ -210,6 +211,7 @@ var KeyboardHandler = (function () {
     KeyboardHandler.prototype.isRightPressed = function () { return this.keyState[Key.Right] || this.keyState[Key.D]; };
     KeyboardHandler.prototype.isDownPressed = function () { return this.keyState[Key.Down] || this.keyState[Key.S]; };
     KeyboardHandler.prototype.isUpPressed = function () { return this.keyState[Key.Up] || this.keyState[Key.W]; };
+    KeyboardHandler.prototype.isSpacePressed = function () { return this.keyState[Key.Space]; };
     KeyboardHandler.prototype.isAnyPressed = function () {
         for (var k in this.keyState) {
             if (this.keyState[k])
@@ -226,14 +228,16 @@ var KeyboardHandler = (function () {
 }());
 var keyboardState = new KeyboardHandler();
 var Level = (function () {
-    function Level(difficulty, levelString, fullRotation) {
+    function Level(difficulty, time, levelString, tip) {
+        if (tip === void 0) { tip = ""; }
         this.difficulty = difficulty;
+        this.time = time;
         this.levelString = levelString;
-        this.fullRotation = fullRotation;
+        this.tip = tip;
+        this.fullRotation = true;
         this.pushers = [];
         this.complete = false;
         this.secondsToComplete = 0;
-        this.timerExtend = 30;
     }
     Level.prototype.Step = function (delta) {
         if (gameMode == Mode.edit) {
@@ -425,7 +429,8 @@ var fds = {
     pin: null,
     goal: null,
     pusher: null,
-    breakWall: null
+    breakWall: null,
+    rotationLock: null
 };
 var Direction = (function () {
     function Direction(x, y) {
@@ -462,7 +467,8 @@ function loadLevelTiles() {
         pin: { density: 0.0, friction: 0.2, restitution: 0.9 },
         goal: { density: 0.0, friction: 0.2, userData: 'goal' },
         pusher: { shape: planck.Box(1, 1), isSensor: true, userData: "pusher" },
-        breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" }
+        breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" },
+        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" }
     };
     levelTiles = [
         new LevelTile("x", "Ball Start", function (level, x, y) {
@@ -541,38 +547,46 @@ function loadLevelTiles() {
             level.AddBreakWall(x - 0.5, y - 0.5);
             level.AddBreakWall(x + 0.5, y - 0.5);
         }),
+        new LevelTile("q", "Lock Rotation", function (level, x, y) {
+            level.fullRotation = false;
+            var rotationLock = level.world.createBody(planck.Vec2(x, y));
+            rotationLock.createFixture(planck.Box(1, 1), fds.rotationLock);
+        }),
         new LevelTile("_", "ERASER", function (level, x, y) { })
     ];
 }
 var levels = [];
 function loadLevels() {
-    levels.push(new Level(0, "\n     #########\n     #       #\n     # x     #\n     ##\u25E3g#   #\n          ggg \n", false));
-    levels.push(new Level(1, "\n     #########\n     #       #\n     # x     #\n     #####   #######\n     #             #\n     #             #\n######  \u25E5#######\u25E4  ######\n#                       #\n#        #  g  #        #\n#  #######  g  #######  #\n#                       #\n#         \u25E2###\u25E3         #\n#########################\n", false));
-    levels.push(new Level(4, "\n#######     ############\n#o    #     #          #\n#     #\u2026\u2026\u2026\u2026\u2026#  \u25E2 \u25E3     #\n#  #                   #\n#   o #\u2026\u2026\u2026\u2026\u2026#  \u25E5 \u25E4     #\n#    o#     #### #######\n### ###        : :\n  : :          : :\n  : :          : +\u2026\u2026\u2026\u2026+\n  : :          :      :\n  # ######     +\u2026\u2026\u2026\u2026+ :\n  #   .  #          : :\n  # .  . #\u2026\u2026\u2026####   : :\n  #             #   : :\n  # . . .#\u2026\u2026\u2026#  #   ggg\n  #      #   # x#   ggg\n  ########   ####   \n", true));
-    levels.push(new Level(3, "\n##########################\n##########################\n##\u25DC        \u25E5###        \u25DD##\n##          \u25E5##         ##\n##      #\u25E3        ###   ##\n##      \u25E5#\u25E3       ##    ##\n#####    ###########    ##\n#####    ###########   ###\n##       ##       ##   ###\n##       ##       ##    ##\n##   o##### x ##  ##    ##\n##    ##########  ####  ##\n##mmmm##    ###    ###gg##\n##    ##    ####  ########\n##    ##  #####    #######\n##o   ##  ######  ########\n##    ##  ######       \u25DD##\n##    ##      ##\u25E3       ##\n##    ##      ###### o  ##\n##        ##            ##\n##       \u25E2##\u25DF          \u25DE##\n##########################\n##########################\n", true));
-    levels.push(new Level(5, "\n##########################\n##########################\n##                   <<\u25DD##\n##                   << ##\n##        \u25E2#\u25E3        ##^##\n##   \u25DE\u25DF   \u25E5#\u25E4   \u25DE\u25DF   ##^##\n##    .         .    ##^##\n##      ..   ..      ##^##\n##  \u25DE\u25DF     .     \u25DE\u25DF  ##^##\n##        \u25E2#\u25E3        ##^##\n##    .         .    ##^##\n##o .    .   .    . o##^##\n##     .  <^>  .     ##^##\n##   o   <mmm>   o   ##^##\n##\u25E3      #ggg#      \u25E2##^##\n###\u25E3  .  \u25E5###\u25E4  .  \u25E2###^##\n##\u25E4  . .       . .  \u25E5##^##\n##  . o .     . o .  ##^##\n## . . . . . . . . . ##^##\n##. . . . . . . . . .##^##\n#\u25DC  <<< <<< <<< <<< \u25E2##^##\n#  x###################^##\n#\u25DF>>>>>>>>>>>>>>>>>>>>>\u25DE##\n##########################\n##########################\n", false));
-    levels.push(new Level(2, "\n         #################\n         #################\n###########            \u25DD##\n###########             ##\n##       ##    #####    ##\n## x           #####    ##\n##    ##       ##       ##\n###########    ##      \u25DE##\n#################  #######\n##              #  #######\n##              #  ##\n##  ####### .. ##  ##\n##  ####### .. ##  ##\u25E3\n##  #######\u25E3  \u25E2##  \u25E5##\u25E3\n##   #######gg###\u25E3  \u25E5##\u25E3\n##      ##########\u25E3  \u25E5##\u25E3\n##  . .   #####  ##\u25E3  \u25E5###\n##     .  \u25E5##     \u25E5#\u25E3  \u25E5##\n##### .  . ##      \u25E5#\u25E3  ##\n #####\u25E3    ##  ##\u25E3  \u25E5#  ##\n  #####\u25E3   ##  ###\u25E3     ##\n   ######  ##  ####\u25E3   \u25E2##\n    #####  ##  ###########\n     ####  ##mm##\n      ###      ##\n       ##      ##\n        #########\n", true));
-    levels.push(new Level(1, "\n##############\n#            #\n#            #\n# x          # ######\n##########   # #gggg#\n         #   # #    #\n         #   # #    #\n     #####   # #    #\n     #       # ###  #\n     #       # #    #\n     #       # #    #\n######   ##### #    #\n#        #     #  ###\n#        #     #    #\n#        #    #\u25E4    #\n#    #####   #\u25E4     #\n#    #      #\u25E4     \u25E2#\n#    #######\u25E4     \u25E2#\n#                \u25E2#\n#               \u25E2#\n#              \u25E2#\n################\n", true));
-    levels.push(new Level(3, "\n#####################\n#                   #\n# x          #     \u25E2#\n##########^^^####  ##\n#g       #^^^      \u25E5#\n#g       #          #\n#g       #   ########\n#####\u2026\u2026  #   <<<<<<<#\n#        #   <<<<<<<#\n#        #   #      #\n#....#####   #      #\n#    >>>>>          #\n#    >>>>>    o    o#\n#    #########      #\n#\u25E3                 \u25E2#\n##\u25E3               \u25E2##\n#####################\n", true));
-    levels.push(new Level(2, "\n#################\n#\u25DC   >  :  <   \u25DD#\n#    >  :  <    #\n#  ####\u25E3 \u25E2##.  .#\n#    ##ggg## .  #\n###  #######    #\n#    #\u25DC x \u25DD#  . #\n#    # ### #  . #\n#    #\u25DF   \u25DE#.   #\n#  ##### ###   .#\n#    #\u25DC   \u25DD# . .#\n###  #  o  #  . #\n#    #\u25DF   \u25DE# .  #\n#  ##### #####  #\n#     <   >     #\n#################\n", true));
-    levels.push(new Level(3, "\n##################\n#x   \u25E5\u25E3    \u25E2\u25E4    #\n###\u25E3  \u25E5\u25E3  \u25E2\u25E4  .  #\n#g \u25E5\u25E3  \u25E5\u25E3\u25E2\u25E4  \u25E2\u25E4  #\n#g  \u25E5\u25E3  \u25E5\u25E4  \u25E2\u25E4  \u25E2#\n#\u25E2\u25E3  \u25E5\u25E3    \u25E2\u25E4  \u25E2\u25E4#\n#\u25E5\u25E4\u25E2\u25E3 \u25E5\u25E3  \u25E2\u25E4  \u25E2\u25E4 #\n#  \u25E5\u25E4\u25E2\u25E3\u25E5\u25E3\u25E2\u25E4. \u25E2\u25E4  #\n#  \u25E2\u25E3\u25E5\u25E4\u25E2\u25E4\u25E5\u25E3. \u25E5\u25E3  #\n#\u25E2\u25E3\u25E5\u25E4 \u25E2\u25E4..\u25E5\u25E3  \u25E5\u25E3 #\n#\u25E5\u25E4  \u25E2\u25E4    \u25E5\u25E3  \u25E5\u25E3#\n#   \u25E2\u25E4  \u25E2\u25E3  \u25E5\u25E3  \u25E5#\n#  \u25E2\u25E4  \u25E2\u25E4\u25E5\u25E3  \u25E5\u25E3  #\n#  .  \u25E2\u25E4  \u25E5\u25E3  .  #\n#    \u25E2\u25E4    \u25E5\u25E3    #\n##################\n", true));
-    levels.push(new Level(3, "\n#############################\n##\u25E4                 o       #\n#\u25E4     \u25E2\u25E3     o             #\n#     \u25E2\u25E4\u25E5\u25E3                  #\n#     \u25E5\u25E3\u25E2################   #\n#      \u25E5#\u25E4    . : . : .     #\n# o     #                  \u25E2#\n#       #     . : . : .   \u25E2##\n#   o   #     ###############\n#       #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #gg#\n#\u2026     \u2026#   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   #  #\n#       # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3 #  #\n#  #o#  # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4 #. #\n#  # #  #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #  #\n#  #x#  #   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   # .#\n#  #m#  # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3    #\n#       # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4    #\n#############################\n", true));
-    levels.push(new Level(4, "\n############################\n#     o     o           <  #\n#                       <  #\n#  ###o#####o############^^#\n#  #          :            #\n#  #          :           \u25DE#\n#  #  \u25E2#####\u25E3   \u25E2###########\n#  #\u25E3       \u25E5###\u25E4         \u25E5#\n#  ##\u25E3                     #\n#  # #\u25E3             \u25E2##\u25E3   #\n#  #  #\u25E3  <<<< .   \u25E2#  #\u25E3  #\n#gg######################^^#\n#  #        \u25E5\u25E4        .  ^^#\n#                  . . . ^^#\n# x  \u25E2\u25E3        #         ^^#\n#############o##############\n", false));
-    levels.push(new Level(5, "\n############################\n##########       ###########\n#                .         #\n# x       \u25E2\u25E3         .     #\n#####^######   ###        \u25E2#\n#####\u25DF<<<<<<<<<###       \u25E2##\n##################  ########\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n#  # # # #^# # # # # # # #^#\n#  #o#v#v#^# # # #o# # # #^#\n#oo###v#v#^#o# #o### #v#v#^#\n######v#v#^##\u25E4 \u25E5#### #v#v#^#\n######\u25DF>>>\u25DE##gggggggg#\u25DF>>>\u25DE#\n############################\n", false));
-    levels.push(new Level(3, "\n##################\n#          \u25DD#gggg#\n# x         #o   #\n##########  #    #\n#\u25DC      \u25DD#  #   \u25E5#\n#        #  #    #\n#  o  o  #  #\u25E4   #\n#  #  #     #    #\n#\u25DF\u25DE#  #\u25DF   \u25DE#   \u25E5#\n####  #######    #\n#\u25DC    #\u25DC   \u25DD#\u25E4   #\n#    \u25DE#     #    #\n#  ####  #  #   \u25E5#\n#        #       #\n#\u25DF      \u25DE#\u25DF     \u25DE#\n##################\n", true));
-    levels.push(new Level(4, "\n   ###################\n   #\u25DC         ##ggggg#\n   # ####### ###\u25DD   \u25DC#\n####v##### : : #  o  #\n#\u25DC      \u25DD#     #\u25DD   \u25DC#\n# ## ### #     #  .  #\n# ## # # #  x  #\u25DD   \u25DC#\n#\u25DF  \u25DE# # #######     #\n########v##    .     #\n    #\u25DC          o    #\n    # ## ##    .    \u25DE#\n    # ## #############\n    #\u25DF  \u25DE#\n    ######\n", true));
-    levels.push(new Level(1, "\n#########\n#       # ############# ############\n#       # #          o# #          #\n# x #   # #           # #          #\n#####   # #           # #          #\n    #   # #    ###    ###   ####   #\n    #   ###    # #          # #g   #\n    #          # #          # #g   #\n    #          # #         o# #g   #\n    #         o# ############ #g   #\n    ############              ######\n", true));
+    levels = [];
+    levels.push(new Level(6, 30, "q\n     #########\n     #       #\n     # x     #\n     ##\u25E3g#   #\n          ggg \n"));
+    levels.push(new Level(1, 45, "\n##############\n#            #\n#            #\n#    ####    #\n# x  #  #gggg#\n##############\n", "Rotate the maze with Left and Right."));
+    levels.push(new Level(1, 30, "\n##############\n#            #\n#            #\n# x          # ######\n##########   # #gggg#\n         #   # #    #\n         #   # #    #\n     #####   # #    #\n     #       # ###  #\n     #       # #    #\n     #       # #    #\n######   ##### #    #\n#        #     #  ###\n#        #     #    #\n#        #    #\u25E4    #\n#    #####   #\u25E4     #\n#    #      #\u25E4     \u25E2#\n#    #######\u25E4     \u25E2#\n#                \u25E2#\n#               \u25E2#\n#              \u25E2#\n################\n", "Navigate to the end of each maze before time runs out."));
+    levels.push(new Level(1, 30, "q\n     #########\n     #       #\n     # x     #\n     #####   #######\n     #             #\n     #             #\n######  \u25E5#######\u25E4  ######\n#                       #\n#        #  g  #        #\n#  #######  g  #######  #\n#                       #\n#         \u25E2###\u25E3         #\n#########################\n", "Some mazes can't be completely rotated."));
+    levels.push(new Level(1, 30, "\n#########\n#       # ############# ############\n#       # #          o# #          #\n# x #   # #           # #          #\n#####   # #           # #          #\n    #   # #    ###    ###   ####   #\n    #   ###    # #          # #g   #\n    #          # #          # #g   #\n    #          # #         o# #g   #\n    #         o# ############ #g   #\n    ############              ######\n", "Round bumpers will bounce the marble around. Be careful!"));
+    levels.push(new Level(2, 60, "\n         #################\n         #################\n###########            \u25DD##\n###########             ##\n##       ##    #####    ##\n## x           #####    ##\n##    ##       ##       ##\n###########    ##      \u25DE##\n#################  #######\n##              #  #######\n##              #  ##\n##  ####### .. ##  ##\n##  ####### .. ##  ##\u25E3\n##  #######\u25E3  \u25E2##  \u25E5##\u25E3\n##   #######gg###\u25E3  \u25E5##\u25E3\n##      ##########\u25E3  \u25E5##\u25E3\n##  . .   #####  ##\u25E3  \u25E5###\n##     .  \u25E5##     \u25E5#\u25E3  \u25E5##\n##### .  . ##      \u25E5#\u25E3  ##\n #####\u25E3    ##  ##\u25E3  \u25E5#  ##\n  #####\u25E3   ##  ###\u25E3     ##\n   ######  ##  ####\u25E3   \u25E2##\n    #####  ##  ###########\n     ####  ##mm##\n      ###      ##\n       ##      ##\n        #########\n"));
+    levels.push(new Level(2, 30, "\n#################\n#\u25DC   >  :  <   \u25DD#\n#    >  :  <    #\n#  ####\u25E3 \u25E2##.  .#\n#    ##ggg## .  #\n###  #######    #\n#    #\u25DC x \u25DD#  . #\n#    # ### #  . #\n#    #\u25DF   \u25DE#.   #\n#  ##### ###   .#\n#    #\u25DC   \u25DD# . .#\n###  #  o  #  . #\n#    #\u25DF   \u25DE# .  #\n#  ##### #####  #\n#     <   >     #\n#################\n"));
+    levels.push(new Level(3, 30, "\n##########################\n##########################\n##\u25DC        \u25E5###        \u25DD##\n##          \u25E5##         ##\n##      #\u25E3        ###   ##\n##      \u25E5#\u25E3       ##    ##\n#####    ###########    ##\n#####    ###########   ###\n##       ##       ##   ###\n##       ##       ##    ##\n##   o##### x ##  ##    ##\n##    ##########  ####  ##\n##mmmm##    ###    ###gg##\n##    ##    ####  ########\n##    ##  #####    #######\n##o   ##  ######  ########\n##    ##  ######       \u25DD##\n##    ##      ##\u25E3       ##\n##    ##      ###### o  ##\n##        ##            ##\n##       \u25E2##\u25DF          \u25DE##\n##########################\n##########################\n"));
+    levels.push(new Level(3, 30, "\n#####################\n#                   #\n# x          #     \u25E2#\n##########^^^####  ##\n#g       #^^^      \u25E5#\n#g       #          #\n#g       #   ########\n#####\u2026\u2026  #   <<<<<<<#\n#        #   <<<<<<<#\n#        #   #      #\n#....#####   #      #\n#    >>>>>          #\n#    >>>>>    o    o#\n#    #########      #\n#\u25E3                 \u25E2#\n##\u25E3               \u25E2##\n#####################\n"));
+    levels.push(new Level(3, 30, "\n##################\n#x   \u25E5\u25E3    \u25E2\u25E4    #\n###\u25E3  \u25E5\u25E3  \u25E2\u25E4  .  #\n#g \u25E5\u25E3  \u25E5\u25E3\u25E2\u25E4  \u25E2\u25E4  #\n#g  \u25E5\u25E3  \u25E5\u25E4  \u25E2\u25E4  \u25E2#\n#\u25E2\u25E3  \u25E5\u25E3    \u25E2\u25E4  \u25E2\u25E4#\n#\u25E5\u25E4\u25E2\u25E3 \u25E5\u25E3  \u25E2\u25E4  \u25E2\u25E4 #\n#  \u25E5\u25E4\u25E2\u25E3\u25E5\u25E3\u25E2\u25E4. \u25E2\u25E4  #\n#  \u25E2\u25E3\u25E5\u25E4\u25E2\u25E4\u25E5\u25E3. \u25E5\u25E3  #\n#\u25E2\u25E3\u25E5\u25E4 \u25E2\u25E4..\u25E5\u25E3  \u25E5\u25E3 #\n#\u25E5\u25E4  \u25E2\u25E4    \u25E5\u25E3  \u25E5\u25E3#\n#   \u25E2\u25E4  \u25E2\u25E3  \u25E5\u25E3  \u25E5#\n#  \u25E2\u25E4  \u25E2\u25E4\u25E5\u25E3  \u25E5\u25E3  #\n#  .  \u25E2\u25E4  \u25E5\u25E3  .  #\n#    \u25E2\u25E4    \u25E5\u25E3    #\n##################\n"));
+    levels.push(new Level(3, 30, "\n#############################\n##\u25E4                 o       #\n#\u25E4     \u25E2\u25E3     o             #\n#     \u25E2\u25E4\u25E5\u25E3                  #\n#     \u25E5\u25E3\u25E2################   #\n#      \u25E5#\u25E4    . : . : .     #\n# o     #                  \u25E2#\n#       #     . : . : .   \u25E2##\n#   o   #     ###############\n#       #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #gg#\n#\u2026     \u2026#   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   #  #\n#       # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3 #  #\n#  #o#  # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4 #. #\n#  # #  #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #  #\n#  #x#  #   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   # .#\n#  #m#  # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3    #\n#       # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4    #\n#############################\n"));
+    levels.push(new Level(3, 30, "\n##################\n#          \u25DD#gggg#\n# x         #o   #\n##########  #    #\n#\u25DC      \u25DD#  #   \u25E5#\n#        #  #    #\n#  o  o  #  #\u25E4   #\n#  #  #     #    #\n#\u25DF\u25DE#  #\u25DF   \u25DE#   \u25E5#\n####  #######    #\n#\u25DC    #\u25DC   \u25DD#\u25E4   #\n#    \u25DE#     #    #\n#  ####  #  #   \u25E5#\n#        #       #\n#\u25DF      \u25DE#\u25DF     \u25DE#\n##################\n"));
+    levels.push(new Level(4, 30, "\n#######     ############\n#o    #     #          #\n#     #\u2026\u2026\u2026\u2026\u2026#  \u25E2 \u25E3     #\n#  #                   #\n#   o #\u2026\u2026\u2026\u2026\u2026#  \u25E5 \u25E4     #\n#    o#     #### #######\n### ###        : :\n  : :          : :\n  : :          : +\u2026\u2026\u2026\u2026+\n  : :          :      :\n  # ######     +\u2026\u2026\u2026\u2026+ :\n  #   .  #          : :\n  # .  . #\u2026\u2026\u2026####   : :\n  #             #   : :\n  # . . .#\u2026\u2026\u2026#  #   ggg\n  #      #   # x#   ggg\n  ########   ####   \n"));
+    levels.push(new Level(4, 30, "\n   ###################\n   #\u25DC         ##ggggg#\n   # ####### ###\u25DD   \u25DC#\n####v##### : : #  o  #\n#\u25DC      \u25DD#     #\u25DD   \u25DC#\n# ## ### #     #  .  #\n# ## # # #  x  #\u25DD   \u25DC#\n#\u25DF  \u25DE# # #######     #\n########v##    .     #\n    #\u25DC          o    #\n    # ## ##    .    \u25DE#\n    # ## #############\n    #\u25DF  \u25DE#\n    ######\n"));
+    levels.push(new Level(4, 30, "q\n############################\n#     o     o           <  #\n#                       <  #\n#  ###o#####o############^^#\n#  #          :            #\n#  #          :           \u25DE#\n#  #  \u25E2#####\u25E3   \u25E2###########\n#  #\u25E3       \u25E5###\u25E4         \u25E5#\n#  ##\u25E3                     #\n#  # #\u25E3             \u25E2##\u25E3   #\n#  #  #\u25E3  <<<< .   \u25E2#  #\u25E3  #\n#gg######################^^#\n#  #        \u25E5\u25E4        .  ^^#\n#                  . . . ^^#\n# x  \u25E2\u25E3        #         ^^#\n#############o##############\n"));
+    levels.push(new Level(5, 60, "q\n############################\n##########       ###########\n#                .         #\n# x       \u25E2\u25E3         .     #\n#####^######   ###        \u25E2#\n#####\u25DF<<<<<<<<<###       \u25E2##\n##################  ########\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n# . . . . . . . . . . . .  #\n#  . . . . . . . . . . . . #\n#  # # # #^# # # # # # # #^#\n#  #o#v#v#^# # # #o# # # #^#\n#oo###v#v#^#o# #o### #v#v#^#\n######v#v#^##\u25E4 \u25E5#### #v#v#^#\n######\u25DF>>>\u25DE##gggggggg#\u25DF>>>\u25DE#\n############################\n"));
+    levels.push(new Level(5, 30, "q\n##########################\n##########################\n##                   <<\u25DD##\n##                   << ##\n##        \u25E2#\u25E3        ##^##\n##   \u25DE\u25DF   \u25E5#\u25E4   \u25DE\u25DF   ##^##\n##    .         .    ##^##\n##      ..   ..      ##^##\n##  \u25DE\u25DF     .     \u25DE\u25DF  ##^##\n##        \u25E2#\u25E3        ##^##\n##    .         .    ##^##\n##o .    .   .    . o##^##\n##     .  <^>  .     ##^##\n##   o   <mmm>   o   ##^##\n##\u25E3      #ggg#      \u25E2##^##\n###\u25E3  .  \u25E5###\u25E4  .  \u25E2###^##\n##\u25E4  . .       . .  \u25E5##^##\n##  . o .     . o .  ##^##\n## . . . . . . . . . ##^##\n##. . . . . . . . . .##^##\n#\u25DC  <<< <<< <<< <<< \u25E2##^##\n#  x###################^##\n#\u25DF>>>>>>>>>>>>>>>>>>>>>\u25DE##\n##########################\n##########################\n"));
 }
 var LevelSet = (function () {
-    function LevelSet(levels, startingTimer) {
+    function LevelSet(levels) {
         this.levels = levels;
+        this.timeOut = false;
         this.levelCompleteTimer = 0;
         this.canContinueToNext = false;
         this.showTimerExtend = false;
         this.levelStartTime = 3;
         this.currentLevel = levels[0];
         this.currentLevel.loadWorld();
-        this.timer = startingTimer;
+        this.timer = this.currentLevel.time;
     }
     Object.defineProperty(LevelSet.prototype, "readableLevelNumber", {
         get: function () {
@@ -614,8 +628,14 @@ var LevelSet = (function () {
         configurable: true
     });
     LevelSet.prototype.Step = function (delta) {
+        if (this.levelCompleteTimer > 4)
+            this.canContinueToNext = true;
         if (!this.currentLevel)
             return;
+        if (this.timeOut) {
+            this.levelCompleteTimer += delta;
+            return;
+        }
         if (this.currentLevel.complete) {
             if (gameMode == Mode.test) {
                 editorTestCompleteTime = (+(new Date()) - this.currentLevel.startTime) / 1000;
@@ -624,22 +644,33 @@ var LevelSet = (function () {
             }
             this.levelCompleteTimer += delta;
             if (this.levelCompleteTimer > 2 && !this.showTimerExtend && this.nextLevel) {
-                this.timer += this.nextLevel.timerExtend;
+                this.timer += this.nextLevel.time;
+                if (this.timer > 99.99)
+                    this.timer = 99.99;
                 this.showTimerExtend = true;
-            }
-            if (this.levelCompleteTimer > 4) {
-                this.canContinueToNext = true;
             }
         }
         else if (gameMode == Mode.play && this.levelStartTime > 0) {
         }
         else {
-            this.currentLevel.Step(delta);
             this.timer -= delta;
+            if (this.timer <= 0 && gameMode == Mode.play) {
+                this.timer = 0;
+                this.timeOut = true;
+            }
+            else {
+                this.currentLevel.Step(delta);
+            }
         }
         this.levelStartTime -= delta;
         if (this.canContinueToNext && keyboardState.isAnyPressed()) {
-            this.StartNextLevel();
+            if (this.timeOut) {
+                this.currentLevel = null;
+                MainMenu();
+            }
+            else {
+                this.StartNextLevel();
+            }
         }
     };
     LevelSet.prototype.StartNextLevel = function () {
@@ -670,12 +701,18 @@ var LevelSet = (function () {
         }
         if (gameMode == Mode.play) {
             view.drawCenteredText(this.prettyTimeRemaining, 0.05, 0.05);
-            if (level.complete) {
+            if (this.timeOut) {
+                view.drawCenteredText("Times up!", 0.15, 0.2);
+                if (this.canContinueToNext) {
+                    view.drawCenteredText("Hit any key to continue", 0.06, 0.8);
+                }
+            }
+            else if (level.complete) {
                 view.drawCenteredText("Level Complete!", 0.1, 0.35);
                 view.drawCenteredText(level.secondsToComplete.toFixed(2) + " seconds", 0.08, 0.55);
                 if (this.levelCompleteTimer > 2) {
                     if (this.nextLevel) {
-                        var timerExtend = this.nextLevel.timerExtend;
+                        var timerExtend = this.nextLevel.time;
                         if (timerExtend) {
                             view.drawCenteredText("+" + timerExtend + " seconds to timer", 0.06, 0.65);
                         }
@@ -830,8 +867,9 @@ var BaseMenuElement = (function () {
             view.ctx.fillStyle = "rgba(70,70,85,0.55)";
             if (this.isMouseWithin()) {
                 view.ctx.fillStyle = "rgba(75,75,100,0.85)";
-                if (this instanceof EditorButtonElement && this.isActive)
+                if (this instanceof EditorButtonElement && this.isActive) {
                     view.ctx.fillStyle = "rgba(85,85,100,0.85)";
+                }
             }
             view.ctx.fillRect(this.x, this.y, this.width, this.height);
             if (this instanceof EditorButtonElement && this.isActive) {
@@ -924,12 +962,13 @@ function MainMenu() {
     currentMenu = [];
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     var y = 95;
-    var difficulties = ["Training", "Easy", "Medium", "Hard", "Special"];
+    var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special", "Debug"];
     var _loop_1 = function (i) {
         var b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
         b.onClick = function () {
             currentMenu = [];
-            currentLevels = new LevelSet(levels.filter(function (l) { return l.difficulty == i + 1; }), 40);
+            loadLevels();
+            currentLevels = new LevelSet(levels.filter(function (l) { return l.difficulty == i + 1; }));
         };
         currentMenu.push(b);
         y += 45;
@@ -1187,7 +1226,7 @@ var View = (function () {
                 if (type == "circle") {
                     this.ctx.fillStyle = "rgba(0,0,200,0.6)";
                     if (userData == "bouncer")
-                        this.ctx.fillStyle = "rgba(200,0,0,0.6)";
+                        this.ctx.fillStyle = "rgba(200,0,200,0.6)";
                     if (userData == "ball")
                         this.ctx.fillStyle = "rgba(0,0,0,0.6)";
                     var r = shape.m_radius;
@@ -1198,6 +1237,11 @@ var View = (function () {
                 }
                 else if (userData == "goal") {
                     this.ctx.fillStyle = "rgba(0,200,0,0.6)";
+                    this.createPath(shape.m_vertices);
+                    this.fill();
+                }
+                else if (userData == "rotationLock" && gameMode == Mode.edit) {
+                    this.ctx.fillStyle = "rgba(255,255,255,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
                 }
@@ -1230,6 +1274,9 @@ var View = (function () {
         if (gameMode == Mode.edit) {
             this.highlightCell(cell.x, cell.y);
             DrawEditorPane(this);
+        }
+        if (level.tip.length && currentLevels.levelStartTime <= 0 && !level.complete) {
+            this.drawCenteredText(level.tip, 0.05, 0.95);
         }
     };
     View.prototype.highlightCell = function (x, y) {

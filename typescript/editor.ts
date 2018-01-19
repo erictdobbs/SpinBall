@@ -15,8 +15,8 @@ var levelString = `
 function StartEditor() {
     gameMode = Mode.edit;
     currentLevels = new LevelSet([
-        new Level(0, levelString, true)
-    ], 0)
+        new Level(0, 0, levelString)
+    ])
 }
 
 function EditorTick() {
@@ -59,6 +59,7 @@ function EditorTick() {
     if (keyboardState.isRightPressed()) view.offsetX += 1;
     if (keyboardState.isDownPressed()) view.offsetY -= 1;
     if (keyboardState.isUpPressed()) view.offsetY += 1;
+    if (keyboardState.isSpacePressed()) gameMode = Mode.test;
 }
 
 function ReplaceChar(str: string, newChar: string, stringX: number, stringY: number): string {
@@ -100,7 +101,7 @@ function DrawEditorPane(view: View) {
         for (let tIdx = 0; tIdx < levelTiles.length; tIdx++) {
             let t = levelTiles[tIdx];
             let x = margin + (margin + buttonWidth) * (tIdx % columns);
-            let y = margin + (margin + buttonHeight) * (1 + Math.floor(tIdx / columns));
+            let y = margin + (margin + buttonHeight) * (0 + Math.floor(tIdx / columns));
             let b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, tIdx, t.name, tIdx == 0);
             editorButtons.push(b);
         }

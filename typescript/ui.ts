@@ -1,4 +1,15 @@
 
+// class MenuRow {
+//     constructor(public elements: BaseMenuElement[]) {}
+//     draw(view: View): void { for (let e of this.elements) e.draw(view); }
+// }
+
+// class Menu {
+//     constructor(public elements: BaseMenuElement[], public margin: number) {}
+// }
+
+
+
 class BaseMenuElement {
     constructor(
         public x: number,
@@ -21,7 +32,9 @@ class BaseMenuElement {
             view.ctx.fillStyle = "rgba(70,70,85,0.55)";
             if (this.isMouseWithin()) {
                 view.ctx.fillStyle = "rgba(75,75,100,0.85)";
-                if (this instanceof EditorButtonElement && this.isActive) view.ctx.fillStyle = "rgba(85,85,100,0.85)";
+                if (this instanceof EditorButtonElement && this.isActive) {
+                    view.ctx.fillStyle = "rgba(85,85,100,0.85)";
+                }
             }
             view.ctx.fillRect(this.x, this.y, this.width, this.height);
             if (this instanceof EditorButtonElement && this.isActive) {
@@ -98,14 +111,6 @@ class EditorButton extends BaseMenuElement {
         }
     }
 }
-// class MenuRow {
-//     constructor(public elements: BaseMenuElement[]) {}
-//     draw(view: View): void { for (let e of this.elements) e.draw(view); }
-// }
-
-// class Menu {
-//     constructor(public elements: BaseMenuElement[], public margin: number) {}
-// }
 
 
 
@@ -118,12 +123,13 @@ function MainMenu() {
     currentMenu = [];
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     let y = 95;
-    let difficulties = ["Training", "Easy", "Medium", "Hard", "Special"];
+    let difficulties = ["Practice", "Easy", "Medium", "Hard", "Special", "Debug"];
     for (let i = 0; i < difficulties.length; i++) {
         let b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
         b.onClick = () => {
             currentMenu = [];
-            currentLevels = new LevelSet(levels.filter(l => l.difficulty == i + 1), 40);
+            loadLevels();
+            currentLevels = new LevelSet(levels.filter(l => l.difficulty == i + 1));
         }
         currentMenu.push(b);
         y += 45;

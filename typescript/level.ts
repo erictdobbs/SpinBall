@@ -3,18 +3,19 @@ type LevelSpecial = (l:Level, x:number, y:number) => void;
 class Level {
     constructor(
         public difficulty: number,
-        public levelString: string, 
-        public fullRotation: boolean
+        public time: number,
+        public levelString: string,
+        public tip: string = ""
     ) {
     }
 
+    fullRotation: boolean = true;
     ball: any;
     world: any;
     pushers: any[] = [];
     startTime: number;
     complete: boolean = false;
     secondsToComplete: number = 0;
-    timerExtend: number = 30;
 
     Step(delta): void {
         if (gameMode == Mode.edit) {
@@ -218,7 +219,8 @@ var fds = {
     pin: null,
     goal: null,
     pusher: null,
-    breakWall: null
+    breakWall: null,
+    rotationLock: null
 }
 
 class Direction {
@@ -253,7 +255,8 @@ function loadLevelTiles() {
         pin: { density: 0.0, friction: 0.2, restitution: 0.9 },
         goal: { density: 0.0, friction: 0.2, userData: 'goal' },
         pusher: { shape: planck.Box(1, 1), isSensor: true, userData: "pusher" },
-        breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" }
+        breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" },
+        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" }
     }
 
     levelTiles = [
@@ -332,6 +335,11 @@ function loadLevelTiles() {
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {
             level.AddBreakWall(x - 0.5, y - 0.5); 
             level.AddBreakWall(x + 0.5, y - 0.5);
+        }),
+        new LevelTile("q", "Lock Rotation", (level,x,y) => {
+            level.fullRotation = false;
+            var rotationLock = level.world.createBody(planck.Vec2(x, y));
+            rotationLock.createFixture(planck.Box(1, 1), fds.rotationLock);
         }),
         
         new LevelTile("_", "ERASER", (level,x,y)=>{})

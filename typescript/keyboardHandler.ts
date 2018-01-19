@@ -20,6 +20,7 @@ class KeyboardHandler {
     isRightPressed(): boolean {return this.keyState[Key.Right] || this.keyState[Key.D]}
     isDownPressed(): boolean {return this.keyState[Key.Down] || this.keyState[Key.S]}
     isUpPressed(): boolean {return this.keyState[Key.Up] || this.keyState[Key.W]}
+    isSpacePressed(): boolean {return this.keyState[Key.Space]}
     isAnyPressed(): boolean {
         for (let k in this.keyState) {
             if (this.keyState[k]) return true;

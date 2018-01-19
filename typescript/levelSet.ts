@@ -1,11 +1,12 @@
 class LevelSet {
-    constructor(public levels: Level[], startingTimer: number) {
+    constructor(public levels: Level[]) {
         this.currentLevel = levels[0];
         this.currentLevel.loadWorld();
-        this.timer = startingTimer;
+        this.timer = this.currentLevel.time;
     }
     timer: number;
     currentLevel: Level;
+    timeOut: boolean = false;
     levelCompleteTimer: number = 0;
     canContinueToNext: boolean = false;
     showTimerExtend: boolean = false;
@@ -30,7 +31,12 @@ class LevelSet {
     }
 
     Step(delta): void {
+        if (this.levelCompleteTimer > 4) this.canContinueToNext = true;
         if (!this.currentLevel) return;
+        if (this.timeOut) {
+            this.levelCompleteTimer += delta;
+            return;
+        }
 
         if (this.currentLevel.complete) {
             if (gameMode == Mode.test) {
@@ -40,21 +46,29 @@ class LevelSet {
             }
             this.levelCompleteTimer += delta;
             if (this.levelCompleteTimer > 2 && !this.showTimerExtend && this.nextLevel) {
-                this.timer += this.nextLevel.timerExtend;
+                this.timer += this.nextLevel.time;
+                if (this.timer > 99.99) this.timer = 99.99;
                 this.showTimerExtend = true;
-            }
-            if (this.levelCompleteTimer > 4 /*seconds*/) {
-                this.canContinueToNext = true;
             }
         } else if (gameMode == Mode.play && this.levelStartTime > 0) {
         } else {
-            this.currentLevel.Step(delta);
             this.timer -= delta;
+            if (this.timer <= 0 && gameMode == Mode.play) {
+                this.timer = 0;
+                this.timeOut = true;
+            } else {
+                this.currentLevel.Step(delta);
+            }
         }
         this.levelStartTime -= delta;
 
         if (this.canContinueToNext && keyboardState.isAnyPressed()) {
-            this.StartNextLevel();
+            if (this.timeOut) {
+                this.currentLevel = null;
+                MainMenu();
+            } else {
+                this.StartNextLevel();
+            }
         }
     }
 
@@ -85,12 +99,17 @@ class LevelSet {
         }
         if (gameMode == Mode.play) {
             view.drawCenteredText(this.prettyTimeRemaining, 0.05, 0.05);
-            if (level.complete) {
+            if (this.timeOut) {
+                view.drawCenteredText("Times up!", 0.15, 0.2);
+                if (this.canContinueToNext) {
+                    view.drawCenteredText("Hit any key to continue", 0.06, 0.8);
+                }
+            } else if (level.complete) {
                 view.drawCenteredText("Level Complete!", 0.1, 0.35);
                 view.drawCenteredText(level.secondsToComplete.toFixed(2) + " seconds", 0.08, 0.55);
                 if (this.levelCompleteTimer > 2) {
                     if (this.nextLevel) {
-                        let timerExtend = this.nextLevel.timerExtend;
+                        let timerExtend = this.nextLevel.time;
                         if (timerExtend) {
                             view.drawCenteredText("+" + timerExtend + " seconds to timer", 0.06, 0.65);
                         }

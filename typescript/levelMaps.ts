@@ -7,9 +7,9 @@ function loadLevels(): void {
     levels = [];
     levels.push(new Level(6, 30, `q
      #########
-     #       #
+     #     BB#
      # x     #
-     ##◣g#   #
+     ###g#   #
           ggg 
 `));
 

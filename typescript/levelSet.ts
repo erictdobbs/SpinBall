@@ -33,6 +33,16 @@ class LevelSet {
     Step(delta): void {
         if (this.levelCompleteTimer > 4) this.canContinueToNext = true;
         if (!this.currentLevel) return;
+
+        if (this.canContinueToNext && keyboardState.isAnyPressed()) {
+            if (this.timeOut) {
+                this.currentLevel = null;
+                MainMenu();
+            } else {
+                this.StartNextLevel();
+            }
+        }
+        
         if (this.timeOut) {
             this.levelCompleteTimer += delta;
             return;
@@ -61,15 +71,6 @@ class LevelSet {
             }
         }
         this.levelStartTime -= delta;
-
-        if (this.canContinueToNext && keyboardState.isAnyPressed()) {
-            if (this.timeOut) {
-                this.currentLevel = null;
-                MainMenu();
-            } else {
-                this.StartNextLevel();
-            }
-        }
     }
 
     StartNextLevel(): void {

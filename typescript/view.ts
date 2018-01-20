@@ -138,6 +138,14 @@ class View {
                     this.createPath(shape.m_vertices);
                     this.fill();
                     this.stroke();
+                    let timeVal = b.getUserData();
+                    if (timeVal) {
+                        let timeLabel = (timeVal > 0 ? "+" : "") + timeVal;
+                        this.ctx.font = this.scale*.75 + "px Arial";
+                        let textWidth = this.ctx.measureText(timeLabel).width;
+                        this.ctx.fillStyle = timeVal > 0 ? "green" : "red";
+                        this.ctx.fillText(timeLabel, -textWidth/2 + x0, this.scale/4);
+                    }
                 } else {
                     // need rotate to handle rotated bodies
                     this.ctx.rotate(-r);
@@ -216,6 +224,7 @@ class View {
     }
 
 }
-
+var x0 = 0;
+var y0 = 0;
 
 var view: View = null;

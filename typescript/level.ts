@@ -102,9 +102,19 @@ class Level {
             var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
 
             if (myBall && myBreakWall) {
+                var velocity = myBall.getLinearVelocity();
+                var ballPos = myBall.getPosition();
+                var wallPos = myBreakWall.getPosition();
+                var offset = {x: wallPos.x - ballPos.x, y: wallPos.y - ballPos.y};
+
                 var speed = myBall.getLinearVelocity().length();
-                if (speed > 4) {
+                var angleOffWall = Math.atan2(velocity.y, velocity.x) - Math.atan2(offset.y, offset.x);
+                var speedTowardsWall = speed * Math.cos(angleOffWall);
+
+                if (speedTowardsWall > 4) {
                     setTimeout(() => {try { 
+                        let timerBonus = myBreakWall.getUserData();
+                        currentLevels.timer += timerBonus;
                         currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0,0));
                         currentLevel.world.destroyBody(myBreakWall);
                     } catch (e) { }}, 1);
@@ -205,9 +215,10 @@ class Level {
             wall.createFixture(planck.Polygon(ps), fds.curve);
         }
     }
-    AddBreakWall(x, y) {
+    AddBreakWall(x: number, y: number, timeValue: number) {
         var bWall = this.world.createBody(planck.Vec2(x, y));
         bWall.createFixture(planck.Box(0.5, 0.5), fds.breakWall);
+        bWall.setUserData(timeValue);
     }
 }
 
@@ -333,8 +344,20 @@ function loadLevelTiles() {
             level.AddPusher(x, y, Direction.Down)
         }),
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {
-            level.AddBreakWall(x - 0.5, y - 0.5); 
-            level.AddBreakWall(x + 0.5, y - 0.5);
+            level.AddBreakWall(x - 0.5, y - 0.5, 0); 
+            level.AddBreakWall(x + 0.5, y - 0.5, 0);
+        }),
+        new LevelTile("B", "Breakwall Bonus Time", (level,x,y) => {
+            level.AddBreakWall(x - 0.5, y - 0.5, 3); 
+            level.AddBreakWall(x + 0.5, y - 0.5, 1); 
+            level.AddBreakWall(x - 0.5, y + 0.5, 1); 
+            level.AddBreakWall(x + 0.5, y + 0.5, 0);
+        }),
+        new LevelTile("P", "Breakwall Penalty Time", (level,x,y) => {
+            level.AddBreakWall(x - 0.5, y - 0.5, -2); 
+            level.AddBreakWall(x + 0.5, y - 0.5, 0); 
+            level.AddBreakWall(x - 0.5, y + 0.5, 0); 
+            level.AddBreakWall(x + 0.5, y + 0.5, -2);
         }),
         new LevelTile("q", "Lock Rotation", (level,x,y) => {
             level.fullRotation = false;

@@ -320,10 +320,18 @@ var Level = (function () {
             var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
             var myBreakWall = fA.getUserData() == fds.breakWall.userData && bA || fB.getUserData() == fds.breakWall.userData && bB;
             if (myBall && myBreakWall) {
+                var velocity = myBall.getLinearVelocity();
+                var ballPos = myBall.getPosition();
+                var wallPos = myBreakWall.getPosition();
+                var offset = { x: wallPos.x - ballPos.x, y: wallPos.y - ballPos.y };
                 var speed = myBall.getLinearVelocity().length();
-                if (speed > 4) {
+                var angleOffWall = Math.atan2(velocity.y, velocity.x) - Math.atan2(offset.y, offset.x);
+                var speedTowardsWall = speed * Math.cos(angleOffWall);
+                if (speedTowardsWall > 4) {
                     setTimeout(function () {
                         try {
+                            var timerBonus = myBreakWall.getUserData();
+                            currentLevels.timer += timerBonus;
                             currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0, 0));
                             currentLevel.world.destroyBody(myBreakWall);
                         }
@@ -415,9 +423,10 @@ var Level = (function () {
             wall.createFixture(planck.Polygon(ps), fds.curve);
         }
     };
-    Level.prototype.AddBreakWall = function (x, y) {
+    Level.prototype.AddBreakWall = function (x, y, timeValue) {
         var bWall = this.world.createBody(planck.Vec2(x, y));
         bWall.createFixture(planck.Box(0.5, 0.5), fds.breakWall);
+        bWall.setUserData(timeValue);
     };
     return Level;
 }());
@@ -443,12 +452,12 @@ var Direction = (function () {
         if (!y)
             this.innerArrow.push({ x: 0, y: x * 0.5 }, { x: 0, y: -x * 0.5 });
     }
+    Direction.Left = new Direction(-1, 0);
+    Direction.Right = new Direction(1, 0);
+    Direction.Up = new Direction(0, 1);
+    Direction.Down = new Direction(0, -1);
     return Direction;
 }());
-Direction.Left = new Direction(-1, 0);
-Direction.Right = new Direction(1, 0);
-Direction.Up = new Direction(0, 1);
-Direction.Down = new Direction(0, -1);
 var LevelTile = (function () {
     function LevelTile(character, name, addToLevel) {
         this.character = character;
@@ -544,8 +553,20 @@ function loadLevelTiles() {
             level.AddPusher(x, y, Direction.Down);
         }),
         new LevelTile("m", "Breakwall Pair Bottom", function (level, x, y) {
-            level.AddBreakWall(x - 0.5, y - 0.5);
-            level.AddBreakWall(x + 0.5, y - 0.5);
+            level.AddBreakWall(x - 0.5, y - 0.5, 0);
+            level.AddBreakWall(x + 0.5, y - 0.5, 0);
+        }),
+        new LevelTile("B", "Breakwall Bonus Time", function (level, x, y) {
+            level.AddBreakWall(x - 0.5, y - 0.5, 3);
+            level.AddBreakWall(x + 0.5, y - 0.5, 1);
+            level.AddBreakWall(x - 0.5, y + 0.5, 1);
+            level.AddBreakWall(x + 0.5, y + 0.5, 0);
+        }),
+        new LevelTile("P", "Breakwall Penalty Time", function (level, x, y) {
+            level.AddBreakWall(x - 0.5, y - 0.5, -2);
+            level.AddBreakWall(x + 0.5, y - 0.5, 0);
+            level.AddBreakWall(x - 0.5, y + 0.5, 0);
+            level.AddBreakWall(x + 0.5, y + 0.5, -2);
         }),
         new LevelTile("q", "Lock Rotation", function (level, x, y) {
             level.fullRotation = false;
@@ -558,7 +579,7 @@ function loadLevelTiles() {
 var levels = [];
 function loadLevels() {
     levels = [];
-    levels.push(new Level(6, 30, "q\n     #########\n     #       #\n     # x     #\n     ##\u25E3g#   #\n          ggg \n"));
+    levels.push(new Level(6, 30, "q\n     #########\n     #     BB#\n     # x     #\n     ###g#   #\n          ggg \n"));
     levels.push(new Level(1, 45, "\n##############\n#            #\n#            #\n#    ####    #\n# x  #  #gggg#\n##############\n", "Rotate the maze with Left and Right."));
     levels.push(new Level(1, 30, "\n##############\n#            #\n#            #\n# x          # ######\n##########   # #gggg#\n         #   # #    #\n         #   # #    #\n     #####   # #    #\n     #       # ###  #\n     #       # #    #\n     #       # #    #\n######   ##### #    #\n#        #     #  ###\n#        #     #    #\n#        #    #\u25E4    #\n#    #####   #\u25E4     #\n#    #      #\u25E4     \u25E2#\n#    #######\u25E4     \u25E2#\n#                \u25E2#\n#               \u25E2#\n#              \u25E2#\n################\n", "Navigate to the end of each maze before time runs out."));
     levels.push(new Level(1, 30, "q\n     #########\n     #       #\n     # x     #\n     #####   #######\n     #             #\n     #             #\n######  \u25E5#######\u25E4  ######\n#                       #\n#        #  g  #        #\n#  #######  g  #######  #\n#                       #\n#         \u25E2###\u25E3         #\n#########################\n", "Some mazes can't be completely rotated."));
@@ -632,6 +653,15 @@ var LevelSet = (function () {
             this.canContinueToNext = true;
         if (!this.currentLevel)
             return;
+        if (this.canContinueToNext && keyboardState.isAnyPressed()) {
+            if (this.timeOut) {
+                this.currentLevel = null;
+                MainMenu();
+            }
+            else {
+                this.StartNextLevel();
+            }
+        }
         if (this.timeOut) {
             this.levelCompleteTimer += delta;
             return;
@@ -663,15 +693,6 @@ var LevelSet = (function () {
             }
         }
         this.levelStartTime -= delta;
-        if (this.canContinueToNext && keyboardState.isAnyPressed()) {
-            if (this.timeOut) {
-                this.currentLevel = null;
-                MainMenu();
-            }
-            else {
-                this.StartNextLevel();
-            }
-        }
     };
     LevelSet.prototype.StartNextLevel = function () {
         this.levelCompleteTimer = 0;
@@ -899,29 +920,27 @@ var BaseMenuElement = (function () {
 var MenuLabel = (function (_super) {
     __extends(MenuLabel, _super);
     function MenuLabel(x, y, width, height, text) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.text = text;
-        _this.labelOnly = true;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.text = text;
+        this.labelOnly = true;
     }
     return MenuLabel;
 }(BaseMenuElement));
 var EditorButtonElement = (function (_super) {
     __extends(EditorButtonElement, _super);
     function EditorButtonElement(x, y, width, height, index, text, isActive) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.index = index;
-        _this.text = text;
-        _this.isActive = isActive;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.index = index;
+        this.text = text;
+        this.isActive = isActive;
     }
     EditorButtonElement.prototype.onClick = function () {
         for (var _i = 0, editorButtons_3 = editorButtons; _i < editorButtons_3.length; _i++) {
@@ -936,14 +955,13 @@ var EditorButtonElement = (function (_super) {
 var EditorButton = (function (_super) {
     __extends(EditorButton, _super);
     function EditorButton(x, y, width, height, text, action) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.text = text;
-        _this.action = action;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.text = text;
+        this.action = action;
     }
     EditorButton.prototype.onClick = function () {
         if (mouseHandler.isMouseLeftChanged) {
@@ -962,8 +980,8 @@ function MainMenu() {
     currentMenu = [];
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     var y = 95;
-    var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special", "Debug"];
-    var _loop_1 = function (i) {
+    var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special"];
+    var _loop_1 = function(i) {
         var b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
         b.onClick = function () {
             currentMenu = [];
@@ -1258,6 +1276,14 @@ var View = (function () {
                     this.createPath(shape.m_vertices);
                     this.fill();
                     this.stroke();
+                    var timeVal = b.getUserData();
+                    if (timeVal) {
+                        var timeLabel = (timeVal > 0 ? "+" : "") + timeVal;
+                        this.ctx.font = this.scale * .75 + "px Arial";
+                        var textWidth = this.ctx.measureText(timeLabel).width;
+                        this.ctx.fillStyle = timeVal > 0 ? "green" : "red";
+                        this.ctx.fillText(timeLabel, -textWidth / 2 + x0, this.scale / 4);
+                    }
                 }
                 else {
                     this.ctx.rotate(-r);
@@ -1331,5 +1357,7 @@ var View = (function () {
     };
     return View;
 }());
+var x0 = 0;
+var y0 = 0;
 var view = null;
 //# sourceMappingURL=build.js.map

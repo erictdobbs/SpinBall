@@ -36,7 +36,7 @@ function EditorTick() {
         let stringX = (cell.x) / 2;
         let stringY = -(cell.y) / 2;
 
-        if (char == "x") levelString = levelString.replace('x', ' ');
+        if (char == "x") levelString = levelString.replace('x', '_');
         levelString = ReplaceChar(levelString, char, stringX, stringY);
         StartEditor();
     } else if (mouseHandler.isMouseRightChanged) {
@@ -73,7 +73,7 @@ function ReplaceChar(str: string, newChar: string, stringX: number, stringY: num
     }
     for (; stringX < 0; stringX++) {
         str = "_" + str;
-        str = str.replace(/\r?\n/g, '\n ');
+        str = str.replace(/\r?\n/g, '\n_');
         view.x += 2;
     }
     let lines = str.split('\n');
@@ -98,16 +98,38 @@ function DrawEditorPane(view: View) {
     if (!editorButtons.length) {
         let editorItemCount = levelTiles.length;
         let height = view.height;
-        let rows = Math.ceil(editorItemCount / columns) + 8; // leave space for extra rows for bonus margin
+        let rows = Math.ceil(editorItemCount / columns) + 3; // leave space for extra rows for bonus margin
         let buttonWidth = (width - margin) / columns - margin;
         let buttonHeight = Math.min(50, (height - margin) / rows - margin);
 
-        for (let tIdx = 0; tIdx < levelTiles.length; tIdx++) {
-            let t = levelTiles[tIdx];
+
+        let tiles = levelTiles.filter(x => x.group === "");
+        for (let tIdx = 0; tIdx < tiles.length; tIdx++) {
+            let t = tiles[tIdx];
             let x = margin + (margin + buttonWidth) * (tIdx % columns);
             let y = margin + (margin + buttonHeight) * (0 + Math.floor(tIdx / columns));
-            let b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, tIdx, t.name, tIdx == 0);
+            let b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, levelTiles.indexOf(t), t.name, tIdx == 0);
             editorButtons.push(b);
+        }
+        let rowNum = Math.floor(tiles.length / columns);
+        let groupedTiles = levelTiles.filter(x => x.group !== "");
+        let groups = groupedTiles.map(x => x.group).distinct();
+        for (let group of groups) {
+            let tilesInGroup = groupedTiles.filter(x => x.group === group);
+            let y = margin + (margin + buttonHeight) * (rowNum);
+            let groupButtonWidth = (width - margin) / (tilesInGroup.length + 2) - margin;
+            let labelWidth = groupButtonWidth * 2 + margin;
+            let label = new MenuLabel(margin, y, labelWidth, buttonHeight, group);
+            editorButtons.push(label);
+
+            for (let idx = 0; idx < tilesInGroup.length; idx++) {
+                let t = tilesInGroup[idx];
+                let x = margin + (margin + groupButtonWidth) * (2 + idx);
+                let b = new EditorButtonElement(x, y, groupButtonWidth, buttonHeight, levelTiles.indexOf(t), t.name, false);
+                editorButtons.push(b);
+            }
+
+            rowNum++;
         }
 
         let exportButton = new EditorButton(

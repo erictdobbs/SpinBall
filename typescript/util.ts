@@ -12,7 +12,19 @@ interface Array<T> {
     min(): T;
     rand(): T;
     popRand(): T;
+    distinct(): Array<T>;
 }
+
+function onlyUnique(value, index, self) { 
+    return self.indexOf(value) === index;
+}
+
+if (!Array.prototype.distinct) {
+    Array.prototype.distinct = function() {
+        return this.filter(onlyUnique);
+    }
+}
+
 
 if (!Array.prototype.popRand) {
     // remove and return a random element

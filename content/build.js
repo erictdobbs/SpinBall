@@ -80,7 +80,7 @@ function EditorTick() {
         var stringX = (cell.x) / 2;
         var stringY = -(cell.y) / 2;
         if (char == "x")
-            levelString = levelString.replace('x', ' ');
+            levelString = levelString.replace('x', '_');
         levelString = ReplaceChar(levelString, char, stringX, stringY);
         StartEditor();
     }
@@ -124,7 +124,7 @@ function ReplaceChar(str, newChar, stringX, stringY) {
     }
     for (; stringX < 0; stringX++) {
         str = "_" + str;
-        str = str.replace(/\r?\n/g, '\n ');
+        str = str.replace(/\r?\n/g, '\n_');
         view.x += 2;
     }
     var lines = str.split('\n');
@@ -147,15 +147,38 @@ function DrawEditorPane(view) {
     if (!editorButtons.length) {
         var editorItemCount = levelTiles.length;
         var height = view.height;
-        var rows = Math.ceil(editorItemCount / columns) + 8;
+        var rows = Math.ceil(editorItemCount / columns) + 3;
         var buttonWidth = (width - margin) / columns - margin;
         var buttonHeight = Math.min(50, (height - margin) / rows - margin);
-        for (var tIdx = 0; tIdx < levelTiles.length; tIdx++) {
-            var t = levelTiles[tIdx];
+        var tiles = levelTiles.filter(function (x) { return x.group === ""; });
+        for (var tIdx = 0; tIdx < tiles.length; tIdx++) {
+            var t = tiles[tIdx];
             var x = margin + (margin + buttonWidth) * (tIdx % columns);
             var y = margin + (margin + buttonHeight) * (0 + Math.floor(tIdx / columns));
-            var b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, tIdx, t.name, tIdx == 0);
+            var b = new EditorButtonElement(x, y, buttonWidth, buttonHeight, levelTiles.indexOf(t), t.name, tIdx == 0);
             editorButtons.push(b);
+        }
+        var rowNum = Math.floor(tiles.length / columns);
+        var groupedTiles = levelTiles.filter(function (x) { return x.group !== ""; });
+        var groups = groupedTiles.map(function (x) { return x.group; }).distinct();
+        var _loop_1 = function(group) {
+            var tilesInGroup = groupedTiles.filter(function (x) { return x.group === group; });
+            var y = margin + (margin + buttonHeight) * (rowNum);
+            var groupButtonWidth = (width - margin) / (tilesInGroup.length + 2) - margin;
+            var labelWidth = groupButtonWidth * 2 + margin;
+            var label = new MenuLabel(margin, y, labelWidth, buttonHeight, group);
+            editorButtons.push(label);
+            for (var idx = 0; idx < tilesInGroup.length; idx++) {
+                var t = tilesInGroup[idx];
+                var x = margin + (margin + groupButtonWidth) * (2 + idx);
+                var b = new EditorButtonElement(x, y, groupButtonWidth, buttonHeight, levelTiles.indexOf(t), t.name, false);
+                editorButtons.push(b);
+            }
+            rowNum++;
+        };
+        for (var _i = 0, groups_1 = groups; _i < groups_1.length; _i++) {
+            var group = groups_1[_i];
+            _loop_1(group);
         }
         var exportButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 3, (width - margin) / 2 - margin, buttonHeight * 1.5, "Export", function () {
             prompt("Here's your level code:", levelString.replace(/\r?\n/g, '/'));
@@ -178,8 +201,8 @@ function DrawEditorPane(view) {
     view.ctx.fillRect(width, 0, 5, view.height);
     view.ctx.fillStyle = "rgba(45,45,63,1)";
     view.ctx.fillRect(0, 0, width, view.height);
-    for (var _i = 0, editorButtons_2 = editorButtons; _i < editorButtons_2.length; _i++) {
-        var b = editorButtons_2[_i];
+    for (var _a = 0, editorButtons_2 = editorButtons; _a < editorButtons_2.length; _a++) {
+        var b = editorButtons_2[_a];
         b.draw(view);
     }
 }
@@ -522,57 +545,57 @@ function loadLevelTiles() {
             var bouncer = level.world.createBody(planck.Vec2(x, y));
             bouncer.createFixture(planck.Circle(1), fds.bouncer);
         }),
-        new LevelTile(".", "Pin", function (level, x, y) {
+        new LevelTile(".", ".", function (level, x, y) {
             level.AddPin(x, y);
         }, "Pin"),
-        new LevelTile("+", "Pin Cross", function (level, x, y) {
+        new LevelTile("+", "+", function (level, x, y) {
             level.AddPin(x - 0.5, y);
             level.AddPin(x + 0.5, y);
             level.AddPin(x, y + 0.5);
             level.AddPin(x, y - 0.5);
         }, "Pin"),
-        new LevelTile(":", "Pin Vertical Pair", function (level, x, y) {
+        new LevelTile(":", ":", function (level, x, y) {
             level.AddPin(x, y - 0.5);
             level.AddPin(x, y + 0.5);
         }, "Pin"),
-        new LevelTile("…", "Pin Horizontal Pair", function (level, x, y) {
+        new LevelTile("…", "..", function (level, x, y) {
             level.AddPin(x - 0.5, y);
             level.AddPin(x + 0.5, y);
         }, "Pin"),
-        new LevelTile("◣", "Diagonal Up Left", function (level, x, y) {
+        new LevelTile("◣", "◣", function (level, x, y) {
             level.AddTriangle(x, y, 0);
         }, "Ramp"),
-        new LevelTile("◢", "Diagonal Up Right", function (level, x, y) {
+        new LevelTile("◢", "◢", function (level, x, y) {
             level.AddTriangle(x, y, Math.PI / 2);
         }, "Ramp"),
-        new LevelTile("◤", "Diagonal Down Left", function (level, x, y) {
+        new LevelTile("◤", "◤", function (level, x, y) {
             level.AddTriangle(x, y, -Math.PI / 2);
         }, "Ramp"),
-        new LevelTile("◥", "Diagonal Down Right", function (level, x, y) {
+        new LevelTile("◥", "◥", function (level, x, y) {
             level.AddTriangle(x, y, Math.PI);
         }, "Ramp"),
-        new LevelTile("◟", "Curve Up Left", function (level, x, y) {
+        new LevelTile("◟", "◣", function (level, x, y) {
             level.AddCurve(x, y, 0);
         }, "Curve"),
-        new LevelTile("◞", "Curve Up Right", function (level, x, y) {
+        new LevelTile("◞", "◢", function (level, x, y) {
             level.AddCurve(x, y, Math.PI / 2);
         }, "Curve"),
-        new LevelTile("◜", "Curve Down Left", function (level, x, y) {
+        new LevelTile("◜", "◤", function (level, x, y) {
             level.AddCurve(x, y, -Math.PI / 2);
         }, "Curve"),
-        new LevelTile("◝", "Curve Down Right", function (level, x, y) {
+        new LevelTile("◝", "◥", function (level, x, y) {
             level.AddCurve(x, y, Math.PI);
         }, "Curve"),
-        new LevelTile("<", "Pusher Left", function (level, x, y) {
+        new LevelTile("<", "<", function (level, x, y) {
             level.AddPusher(x, y, Direction.Left);
         }, "Pusher"),
-        new LevelTile(">", "Pusher Right", function (level, x, y) {
+        new LevelTile(">", ">", function (level, x, y) {
             level.AddPusher(x, y, Direction.Right);
         }, "Pusher"),
-        new LevelTile("^", "Pusher Up", function (level, x, y) {
+        new LevelTile("^", "^", function (level, x, y) {
             level.AddPusher(x, y, Direction.Up);
         }, "Pusher"),
-        new LevelTile("v", "Pusher Down", function (level, x, y) {
+        new LevelTile("v", "v", function (level, x, y) {
             level.AddPusher(x, y, Direction.Down);
         }, "Pusher"),
         new LevelTile("m", "Breakwall Pair Bottom", function (level, x, y) {
@@ -623,6 +646,8 @@ function loadLevels() {
     levels.push(new Level(3, 30, "\n#####################\n#                   #\n# x          #     \u25E2#\n##########^^^####  ##\n#g       #^^^      \u25E5#\n#g       #          #\n#g       #   ########\n#####\u2026\u2026  #   <<<<<<<#\n#        #   <<<<<<<#\n#        #   #      #\n#....#####   #      #\n#    >>>>>          #\n#    >>>>>    o    o#\n#    #########      #\n#\u25E3                 \u25E2#\n##\u25E3               \u25E2##\n#####################\n"));
     levels.push(new Level(3, 30, "\n#############################\n##\u25E4                 o       #\n#\u25E4     \u25E2\u25E3     o             #\n#     \u25E2\u25E4\u25E5\u25E3                  #\n#     \u25E5\u25E3\u25E2################   #\n#      \u25E5#\u25E4    . : . : .     #\n# o     #                  \u25E2#\n#       #     . : . : .   \u25E2##\n#   o   #     ###############\n#       #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #gg#\n#\u2026     \u2026#   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   #  #\n#       # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3 #  #\n#  #o#  # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4 #. #\n#  # #  #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #  #\n#  #x#  #   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   # .#\n#  #m#  # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3    #\n#       # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4    #\n#############################\n"));
     levels.push(new Level(3, 30, "\n##################\n#          \u25DD#gggg#\n# x         #o   #\n##########  #    #\n#\u25DC      \u25DD#  #   \u25E5#\n#        #  #    #\n#  o  o  #  #\u25E4   #\n#  #  #     #    #\n#\u25DF\u25DE#  #\u25DF   \u25DE#   \u25E5#\n####  #######    #\n#\u25DC    #\u25DC   \u25DD#\u25E4   #\n#    \u25DE#     #    #\n#  ####  #  #   \u25E5#\n#        #       #\n#\u25DF      \u25DE#\u25DF     \u25DE#\n##################\n"));
+    levels.push(new Level(3, 30, "\n###################\n#\u25E4___\u25E5#_____#_____#\n#_____#_____#_ggg_#\n#________o__#_ggg_#\n#__  _#_____#_ggg_#\n#\u25E3_x_\u25E2#_____#_____#\n#########_#####_###\n#_____#_____#_____#\n#_o___#_o___#_____#\n#__o________#_____#\n#___o_#___o_#_____#\n#_____#_____#_____#\n###_###########_###\n#_____#_____#_____#\n#_o_o_#_o_o_#_ooo_#\n#________o________#\n#_o_o_#_o_o_#_ooo_#\n#_____#_____#_____#\n###################\n"));
+    levels.push(new Level(3, 30, "\n###################\n#___#_____#_______#\n#___#_____#_______#\n#___#_____#_______#\n#_#_#__#__#___#___#\nN_N_N__N__N___N___N\nN_N_N__N__N___N___N\nN_N_N__N__N___N___N\n#_#_#__#__#___#___#\n#_#____#______#___#\n#_#____#______#___#\n#g#____#______#_x_#\n###################\n"));
     levels.push(new Level(4, 30, "\n#######     ############\n#o    #     #          #\n#     #\u2026\u2026\u2026\u2026\u2026#  \u25E2 \u25E3     #\n#  #                   #\n#   o #\u2026\u2026\u2026\u2026\u2026#  \u25E5 \u25E4     #\n#    o#     #### #######\n### ###        : :\n  : :          : :\n  : :          : +\u2026\u2026\u2026\u2026+\n  : :          :      :\n  # ######     +\u2026\u2026\u2026\u2026+ :\n  #   .  #          : :\n  # .  . #\u2026\u2026\u2026####   : :\n  #             #   : :\n  # . . .#\u2026\u2026\u2026#  #   ggg\n  #      #   # x#   ggg\n  ########   ####   \n"));
     levels.push(new Level(4, 30, "\n   ###################\n   #\u25DC         ##ggggg#\n   # ####### ###\u25DD   \u25DC#\n####v##### : : #  o  #\n#\u25DC      \u25DD#     #\u25DD   \u25DC#\n# ## ### #     #  .  #\n# ## # # #  x  #\u25DD   \u25DC#\n#\u25DF  \u25DE# # #######     #\n########v##    .     #\n    #\u25DC          o    #\n    # ## ##    .    \u25DE#\n    # ## #############\n    #\u25DF  \u25DE#\n    ######\n"));
     levels.push(new Level(4, 30, "q\n############################\n#     o     o           <  #\n#                       <  #\n#  ###o#####o############^^#\n#  #          :            #\n#  #          :           \u25DE#\n#  #  \u25E2#####\u25E3   \u25E2###########\n#  #\u25E3       \u25E5###\u25E4         \u25E5#\n#  ##\u25E3                     #\n#  # #\u25E3             \u25E2##\u25E3   #\n#  #  #\u25E3  <<<< .   \u25E2#  #\u25E3  #\n#gg######################^^#\n#  #        \u25E5\u25E4        .  ^^#\n#                  . . . ^^#\n# x  \u25E2\u25E3        #         ^^#\n#############o##############\n"));
@@ -1016,7 +1041,7 @@ function MainMenu() {
     var y = 95;
     var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special"];
     loadLevels();
-    var _loop_1 = function(i) {
+    var _loop_2 = function(i) {
         var levelCount = levels.filter(function (x) { return x.difficulty === i + 1; }).length;
         var buttonText = difficulties[i] + " (" + levelCount + " stages)";
         var b = new BaseMenuElement(50, y, 200, 40, buttonText, false);
@@ -1029,7 +1054,7 @@ function MainMenu() {
         y += 45;
     };
     for (var i = 0; i < difficulties.length; i++) {
-        _loop_1(i);
+        _loop_2(i);
     }
     currentMenu.push(new MenuLabel(30, y, 240, 120, ""));
     y += 65;
@@ -1068,6 +1093,14 @@ function DrawUI() {
         view.drawCenteredText("Spinball", 0.08, 0.65);
         view.drawCenteredText("An unfinished game", 0.05, 0.75);
     }
+}
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+}
+if (!Array.prototype.distinct) {
+    Array.prototype.distinct = function () {
+        return this.filter(onlyUnique);
+    };
 }
 if (!Array.prototype.popRand) {
     Array.prototype.popRand = function () {

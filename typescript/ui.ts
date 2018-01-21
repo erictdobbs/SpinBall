@@ -1,15 +1,4 @@
 
-// class MenuRow {
-//     constructor(public elements: BaseMenuElement[]) {}
-//     draw(view: View): void { for (let e of this.elements) e.draw(view); }
-// }
-
-// class Menu {
-//     constructor(public elements: BaseMenuElement[], public margin: number) {}
-// }
-
-
-
 class BaseMenuElement {
     constructor(
         public x: number,

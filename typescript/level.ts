@@ -307,57 +307,57 @@ function loadLevelTiles() {
             var bouncer = level.world.createBody(planck.Vec2(x, y));
             bouncer.createFixture(planck.Circle(1), fds.bouncer);
         }),
-        new LevelTile(".", "Pin", (level,x,y) => {
+        new LevelTile(".", ".", (level,x,y) => {
             level.AddPin(x, y);
         }, "Pin"),
-        new LevelTile("+", "Pin Cross", (level,x,y) => {
+        new LevelTile("+", "+", (level,x,y) => {
             level.AddPin(x - 0.5, y); 
             level.AddPin(x + 0.5, y); 
             level.AddPin(x, y + 0.5); 
             level.AddPin(x, y - 0.5);
         }, "Pin"),
-        new LevelTile(":", "Pin Vertical Pair", (level,x,y) => {
+        new LevelTile(":", ":", (level,x,y) => {
             level.AddPin(x, y - 0.5); 
             level.AddPin(x, y + 0.5);
         }, "Pin"),
-        new LevelTile("…", "Pin Horizontal Pair", (level,x,y) => {
+        new LevelTile("…", "..", (level,x,y) => {
             level.AddPin(x - 0.5, y); 
             level.AddPin(x + 0.5, y);
         }, "Pin"),
-        new LevelTile("◣", "Diagonal Up Left", (level,x,y) => {
+        new LevelTile("◣", "◣", (level,x,y) => {
             level.AddTriangle(x, y, 0);
         }, "Ramp"),
-        new LevelTile("◢", "Diagonal Up Right", (level,x,y) => {
+        new LevelTile("◢", "◢", (level,x,y) => {
             level.AddTriangle(x, y, Math.PI / 2);
         }, "Ramp"),
-        new LevelTile("◤", "Diagonal Down Left", (level,x,y) => {
+        new LevelTile("◤", "◤", (level,x,y) => {
             level.AddTriangle(x, y, -Math.PI / 2);
         }, "Ramp"),
-        new LevelTile("◥", "Diagonal Down Right", (level,x,y) => {
+        new LevelTile("◥", "◥", (level,x,y) => {
             level.AddTriangle(x, y, Math.PI);
         }, "Ramp"),
-        new LevelTile("◟", "Curve Up Left", (level,x,y) => {
+        new LevelTile("◟", "◣", (level,x,y) => {
             level.AddCurve(x, y, 0);
         }, "Curve"),
-        new LevelTile("◞", "Curve Up Right", (level,x,y) => {
+        new LevelTile("◞", "◢", (level,x,y) => {
             level.AddCurve(x, y, Math.PI / 2);
         }, "Curve"),
-        new LevelTile("◜", "Curve Down Left", (level,x,y) => {
+        new LevelTile("◜", "◤", (level,x,y) => {
             level.AddCurve(x, y, -Math.PI / 2);
         }, "Curve"),
-        new LevelTile("◝", "Curve Down Right", (level,x,y) => {
+        new LevelTile("◝", "◥", (level,x,y) => {
             level.AddCurve(x, y, Math.PI);
         }, "Curve"),
-        new LevelTile("<", "Pusher Left", (level,x,y) => {
+        new LevelTile("<", "<", (level,x,y) => {
             level.AddPusher(x, y, Direction.Left)
         }, "Pusher"),
-        new LevelTile(">", "Pusher Right", (level,x,y) => {
+        new LevelTile(">", ">", (level,x,y) => {
             level.AddPusher(x, y, Direction.Right)
         }, "Pusher"),
-        new LevelTile("^", "Pusher Up", (level,x,y) => {
+        new LevelTile("^", "^", (level,x,y) => {
             level.AddPusher(x, y, Direction.Up)
         }, "Pusher"),
-        new LevelTile("v", "Pusher Down", (level,x,y) => {
+        new LevelTile("v", "v", (level,x,y) => {
             level.AddPusher(x, y, Direction.Down)
         }, "Pusher"),
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {

@@ -38,6 +38,7 @@ class LevelSet {
             if (this.timeOut) {
                 this.currentLevel = null;
                 MainMenu();
+                return;
             } else {
                 this.StartNextLevel();
             }
@@ -48,7 +49,7 @@ class LevelSet {
             return;
         }
 
-        if (this.currentLevel.complete) {
+        if (this.currentLevel && this.currentLevel.complete) {
             if (gameMode == Mode.test) {
                 editorTestCompleteTime = (+(new Date()) - this.currentLevel.startTime) / 1000;
                 StartEditor();
@@ -67,7 +68,7 @@ class LevelSet {
                 this.timer = 0;
                 this.timeOut = true;
             } else {
-                this.currentLevel.Step(delta);
+                if (this.currentLevel) this.currentLevel.Step(delta);
             }
         }
         this.levelStartTime -= delta;

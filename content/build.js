@@ -100,7 +100,11 @@ function EditorTick() {
             var tileIndex = levelTiles.indexOf(tile);
             editorButtons[tileIndex].onClick();
         }
-        catch (e) { }
+        catch (e) {
+            var tile = levelTiles.find(function (x) { return x.character == "_"; });
+            var tileIndex = levelTiles.indexOf(tile);
+            editorButtons[tileIndex].onClick();
+        }
     }
     if (keyboardState.isLeftPressed())
         view.offsetX -= 1;
@@ -238,6 +242,7 @@ var Level = (function () {
         this.pushers = [];
         this.complete = false;
         this.secondsToComplete = 0;
+        this.hurtTimer = 0;
     }
     Level.prototype.Step = function (delta) {
         if (gameMode == Mode.edit) {
@@ -246,10 +251,10 @@ var Level = (function () {
         }
         if (this.world) {
             this.world.step(delta);
-            this.OnWorldStep(this.world);
+            this.OnWorldStep(this.world, delta);
         }
     };
-    Level.prototype.OnWorldStep = function (world) {
+    Level.prototype.OnWorldStep = function (world, delta) {
         if (!this.startTime)
             this.startTime = +(new Date());
         var secondsPerRotation = 2.0;
@@ -286,6 +291,11 @@ var Level = (function () {
                 }
             }
         }
+        if (this.hurtTimer) {
+            this.hurtTimer -= delta;
+            if (this.hurtTimer < 0)
+                this.hurtTimer = 0;
+        }
     };
     Level.prototype.RotateGrav = function (world, r) {
         var gravityVec = world.getGravity();
@@ -301,6 +311,12 @@ var Level = (function () {
         var gravY = Math.sin(newAngle) * gravityStrength;
         world.setGravity(planck.Vec2(gravX, gravY));
         view.setRotation(newAngle);
+    };
+    Level.prototype.OnTouchHurt = function () {
+        if (this.hurtTimer > 0)
+            return;
+        this.hurtTimer = 1;
+        currentLevels.timer -= 1;
     };
     Level.prototype.loadWorld = function () {
         loadLevelTiles();
@@ -347,6 +363,7 @@ var Level = (function () {
             var myBouncer = fA.getUserData() == fds.bouncer.userData && bA || fB.getUserData() == fds.bouncer.userData && bB;
             var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
             var myGoal = fA.getUserData() == fds.goal.userData && bA || fB.getUserData() == fds.goal.userData && bB;
+            var myTimerPenalty = fA.getUserData() == fds.timerPenalty.userData && bA || fB.getUserData() == fds.timerPenalty.userData && bB;
             if (myBouncer && myBall) {
                 var pBall = myBall.getPosition();
                 var pBouncer = myBouncer.getPosition();
@@ -355,7 +372,9 @@ var Level = (function () {
                 var impulseVector = Vec2(strength * Math.cos(pAngle), strength * Math.sin(pAngle));
                 myBall.applyLinearImpulse(impulseVector, pBall, true);
             }
-            if (myBall && myGoal) {
+            if (myBall && myTimerPenalty && currentLevel)
+                currentLevel.OnTouchHurt();
+            if (myBall && myGoal && currentLevel) {
                 var completionTime = +(new Date()) - currentLevel.startTime;
                 currentLevel.complete = true;
                 currentLevel.secondsToComplete = Math.floor(completionTime) / 1000;
@@ -439,7 +458,8 @@ var fds = {
     goal: null,
     pusher: null,
     breakWall: null,
-    rotationLock: null
+    rotationLock: null,
+    timerPenalty: null
 };
 var Direction = (function () {
     function Direction(x, y) {
@@ -459,10 +479,12 @@ var Direction = (function () {
     return Direction;
 }());
 var LevelTile = (function () {
-    function LevelTile(character, name, addToLevel) {
+    function LevelTile(character, name, addToLevel, group) {
+        if (group === void 0) { group = ""; }
         this.character = character;
         this.name = name;
         this.addToLevel = addToLevel;
+        this.group = group;
     }
     return LevelTile;
 }());
@@ -477,7 +499,8 @@ function loadLevelTiles() {
         goal: { density: 0.0, friction: 0.2, userData: 'goal' },
         pusher: { shape: planck.Box(1, 1), isSensor: true, userData: "pusher" },
         breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" },
-        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" }
+        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" },
+        timerPenalty: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "timerPenalty" }
     };
     levelTiles = [
         new LevelTile("x", "Ball Start", function (level, x, y) {
@@ -501,72 +524,76 @@ function loadLevelTiles() {
         }),
         new LevelTile(".", "Pin", function (level, x, y) {
             level.AddPin(x, y);
-        }),
+        }, "Pin"),
         new LevelTile("+", "Pin Cross", function (level, x, y) {
             level.AddPin(x - 0.5, y);
             level.AddPin(x + 0.5, y);
             level.AddPin(x, y + 0.5);
             level.AddPin(x, y - 0.5);
-        }),
+        }, "Pin"),
         new LevelTile(":", "Pin Vertical Pair", function (level, x, y) {
             level.AddPin(x, y - 0.5);
             level.AddPin(x, y + 0.5);
-        }),
+        }, "Pin"),
         new LevelTile("…", "Pin Horizontal Pair", function (level, x, y) {
             level.AddPin(x - 0.5, y);
             level.AddPin(x + 0.5, y);
-        }),
+        }, "Pin"),
         new LevelTile("◣", "Diagonal Up Left", function (level, x, y) {
             level.AddTriangle(x, y, 0);
-        }),
+        }, "Ramp"),
         new LevelTile("◢", "Diagonal Up Right", function (level, x, y) {
             level.AddTriangle(x, y, Math.PI / 2);
-        }),
+        }, "Ramp"),
         new LevelTile("◤", "Diagonal Down Left", function (level, x, y) {
             level.AddTriangle(x, y, -Math.PI / 2);
-        }),
+        }, "Ramp"),
         new LevelTile("◥", "Diagonal Down Right", function (level, x, y) {
             level.AddTriangle(x, y, Math.PI);
-        }),
+        }, "Ramp"),
         new LevelTile("◟", "Curve Up Left", function (level, x, y) {
             level.AddCurve(x, y, 0);
-        }),
+        }, "Curve"),
         new LevelTile("◞", "Curve Up Right", function (level, x, y) {
             level.AddCurve(x, y, Math.PI / 2);
-        }),
+        }, "Curve"),
         new LevelTile("◜", "Curve Down Left", function (level, x, y) {
             level.AddCurve(x, y, -Math.PI / 2);
-        }),
+        }, "Curve"),
         new LevelTile("◝", "Curve Down Right", function (level, x, y) {
             level.AddCurve(x, y, Math.PI);
-        }),
+        }, "Curve"),
         new LevelTile("<", "Pusher Left", function (level, x, y) {
             level.AddPusher(x, y, Direction.Left);
-        }),
+        }, "Pusher"),
         new LevelTile(">", "Pusher Right", function (level, x, y) {
             level.AddPusher(x, y, Direction.Right);
-        }),
+        }, "Pusher"),
         new LevelTile("^", "Pusher Up", function (level, x, y) {
             level.AddPusher(x, y, Direction.Up);
-        }),
+        }, "Pusher"),
         new LevelTile("v", "Pusher Down", function (level, x, y) {
             level.AddPusher(x, y, Direction.Down);
-        }),
+        }, "Pusher"),
         new LevelTile("m", "Breakwall Pair Bottom", function (level, x, y) {
             level.AddBreakWall(x - 0.5, y - 0.5, 0);
             level.AddBreakWall(x + 0.5, y - 0.5, 0);
         }),
         new LevelTile("B", "Breakwall Bonus Time", function (level, x, y) {
-            level.AddBreakWall(x - 0.5, y - 0.5, 3);
+            level.AddBreakWall(x - 0.5, y - 0.5, 5);
             level.AddBreakWall(x + 0.5, y - 0.5, 1);
             level.AddBreakWall(x - 0.5, y + 0.5, 1);
-            level.AddBreakWall(x + 0.5, y + 0.5, 0);
+            level.AddBreakWall(x + 0.5, y + 0.5, 3);
         }),
         new LevelTile("P", "Breakwall Penalty Time", function (level, x, y) {
             level.AddBreakWall(x - 0.5, y - 0.5, -2);
             level.AddBreakWall(x + 0.5, y - 0.5, 0);
             level.AddBreakWall(x - 0.5, y + 0.5, 0);
             level.AddBreakWall(x + 0.5, y + 0.5, -2);
+        }),
+        new LevelTile("N", "Timer Penalty", function (level, x, y) {
+            var timerPenalty = level.world.createBody(planck.Vec2(x, y));
+            timerPenalty.createFixture(planck.Box(1, 1), fds.timerPenalty);
         }),
         new LevelTile("q", "Lock Rotation", function (level, x, y) {
             level.fullRotation = false;
@@ -583,12 +610,17 @@ function loadLevels() {
     levels.push(new Level(1, 45, "\n##############\n#            #\n#            #\n#    ####    #\n# x  #  #gggg#\n##############\n", "Rotate the maze with Left and Right."));
     levels.push(new Level(1, 30, "\n##############\n#            #\n#            #\n# x          # ######\n##########   # #gggg#\n         #   # #    #\n         #   # #    #\n     #####   # #    #\n     #       # ###  #\n     #       # #    #\n     #       # #    #\n######   ##### #    #\n#        #     #  ###\n#        #     #    #\n#        #    #\u25E4    #\n#    #####   #\u25E4     #\n#    #      #\u25E4     \u25E2#\n#    #######\u25E4     \u25E2#\n#                \u25E2#\n#               \u25E2#\n#              \u25E2#\n################\n", "Navigate to the end of each maze before time runs out."));
     levels.push(new Level(1, 30, "q\n     #########\n     #       #\n     # x     #\n     #####   #######\n     #             #\n     #             #\n######  \u25E5#######\u25E4  ######\n#                       #\n#        #  g  #        #\n#  #######  g  #######  #\n#                       #\n#         \u25E2###\u25E3         #\n#########################\n", "Some mazes can't be completely rotated."));
-    levels.push(new Level(1, 30, "\n#########\n#       # ############# ############\n#       # #          o# #          #\n# x #   # #           # #          #\n#####   # #           # #          #\n    #   # #    ###    ###   ####   #\n    #   ###    # #          # #g   #\n    #          # #          # #g   #\n    #          # #         o# #g   #\n    #         o# ############ #g   #\n    ############              ######\n", "Round bumpers will bounce the marble around. Be careful!"));
+    levels.push(new Level(1, 30, "\n#########\n#       # ############# ############\n#       # #          o# #          #\n# x #   # #     .     # #          #\n#####   # #           # #          #\n    #   # #    ###    ###   ####   #\n    #   ###    # #          # #g   #\n    #          # #     .    # #g   #\n    #    .     # #         o# #g   #\n    #         o# ############ #g   #\n    ############              ######\n", "Round bumpers and pins will bounce the marble around."));
+    levels.push(new Level(1, 30, "\n#######\n#_____#########\n# ____________#\n# _# _#_______#\n# _#NN#####_x_#\n#__#__#N#N#####\n# ____##N##g__#\n# ____#N#N#g__#\n####__#######_#\n#_____#_____N_#\n#_____#_____N_#\n#__#NN#__#__#_#\n#________N____#\n#________N____#\n###############\n", "Red blocks will run out your timer faster. Don't touch them!"));
+    levels.push(new Level(1, 30, "\n##############gg#\n#______#_____#mm#\n#______#_____#mm#\n#___#__#mm#__#mm#\n#___#__#BB#__#mm#\n#___#__#__#__#mm#\n#___#__#__#__#__#\n#_x_#mm#__#__#__#\n#####__#__#_____#\n____#_____#P____#\n____#_____#PP___#\n____#############\n", "Small blocks can be broken with enough speed."));
     levels.push(new Level(2, 60, "\n         #################\n         #################\n###########            \u25DD##\n###########             ##\n##       ##    #####    ##\n## x           #####    ##\n##    ##       ##       ##\n###########    ##      \u25DE##\n#################  #######\n##              #  #######\n##              #  ##\n##  ####### .. ##  ##\n##  ####### .. ##  ##\u25E3\n##  #######\u25E3  \u25E2##  \u25E5##\u25E3\n##   #######gg###\u25E3  \u25E5##\u25E3\n##      ##########\u25E3  \u25E5##\u25E3\n##  . .   #####  ##\u25E3  \u25E5###\n##     .  \u25E5##     \u25E5#\u25E3  \u25E5##\n##### .  . ##      \u25E5#\u25E3  ##\n #####\u25E3    ##  ##\u25E3  \u25E5#  ##\n  #####\u25E3   ##  ###\u25E3     ##\n   ######  ##  ####\u25E3   \u25E2##\n    #####  ##  ###########\n     ####  ##mm##\n      ###      ##\n       ##      ##\n        #########\n"));
+    levels.push(new Level(2, 30, "\n################\n##\u25E4______#_____#\n#\u25E4_______#_\u25E3_\u25E2_#\n# _______#_#g#_#\n# _###_#B#_###_#\n#  _#___##_____#\n# __#___##_____#\n#  _#_x_##_____#\n#\u2026__######B#___#\n# __#\u25DC___##\u25E4___#\n# __#____#\u25E4___\u25E2#\n#___#_#______\u25E2##\n#\u25E3____#_____\u25E2###\n##\u25E3__\u25DE#__o_\u25E2####\n################\n"));
     levels.push(new Level(2, 30, "\n#################\n#\u25DC   >  :  <   \u25DD#\n#    >  :  <    #\n#  ####\u25E3 \u25E2##.  .#\n#    ##ggg## .  #\n###  #######    #\n#    #\u25DC x \u25DD#  . #\n#    # ### #  . #\n#    #\u25DF   \u25DE#.   #\n#  ##### ###   .#\n#    #\u25DC   \u25DD# . .#\n###  #  o  #  . #\n#    #\u25DF   \u25DE# .  #\n#  ##### #####  #\n#     <   >     #\n#################\n"));
+    levels.push(new Level(2, 40, "\n#################\n#\u25DC_____\u25DD#\u25DC_____\u25DD#\n# #####_#_#####_#\n#\u25DF___\u25DD#_#_#\u25DC___\u25DE#\n#####_#_#_#_#####\n#\u25DC  _\u25DE#\u25DF_\u25DE#_#\u25DC_\u25DD#\n# #########_#_#_#\n#\u25DF \u25DD#___#BB_#_#_#\n### #_x_#BB_#_#_#\n#\u25DC \u25DE#\u25E3_\u25E2###_#_#_#\n#\u25DF\u25DD###_#\u25DC__\u25DE#_#_#\n#\u25DC\u25DE#g#_#_####_#_#\n#\u25DF\u25DD#g#_#\u25DF____\u25DE#_#\n#\u25DC\u25DE#_#_########_#\n#\u25DF  \u25DE#\u25DF________\u25DE#\n#################\n"));
+    levels.push(new Level(2, 30, "\n##################\n#x   \u25E5\u25E3    \u25E2\u25E4    #\n###\u25E3  \u25E5\u25E3  \u25E2\u25E4  .  #\n#g \u25E5\u25E3  \u25E5\u25E3\u25E2\u25E4  \u25E2\u25E4  #\n#g  \u25E5\u25E3  \u25E5\u25E4  \u25E2\u25E4  \u25E2#\n#\u25E2\u25E3  \u25E5\u25E3    \u25E2\u25E4  \u25E2\u25E4#\n#\u25E5\u25E4\u25E2\u25E3 \u25E5\u25E3  \u25E2\u25E4  \u25E2\u25E4 #\n#  \u25E5\u25E4\u25E2\u25E3\u25E5\u25E3\u25E2\u25E4. \u25E2\u25E4  #\n#  \u25E2\u25E3\u25E5\u25E4\u25E2\u25E4\u25E5\u25E3. \u25E5\u25E3  #\n#\u25E2\u25E3\u25E5\u25E4 \u25E2\u25E4..\u25E5\u25E3  \u25E5\u25E3 #\n#\u25E5\u25E4  \u25E2\u25E4    \u25E5\u25E3  \u25E5\u25E3#\n#   \u25E2\u25E4  \u25E2\u25E3  \u25E5\u25E3  \u25E5#\n#  \u25E2\u25E4  \u25E2\u25E4\u25E5\u25E3  \u25E5\u25E3  #\n#  .  \u25E2\u25E4  \u25E5\u25E3  .  #\n#    \u25E2\u25E4    \u25E5\u25E3    #\n##################\n"));
+    levels.push(new Level(2, 30, "\n\u25E2#########\u25E3\n#+ _g##\u25E4__\u25E5\u25E3\n# +_g#\u25E4__._#####\u25E3\n#  +#\u25E4____\u25E2\u25E4.___\u25E5\u25E3\n#  \u25E2\u25E4_\u25E2#_#\u25E4___#\u25E3_\u25E5\u25E3\n#  #__#____\u25E2#\u25E3_\u25E5\u25E3_#\n#  #__#_.__#_#__#_\u25E5\u25E3\n#  \u25E5\u25E3_\u25E5\u25E3___\u25E5#\u25E4_\u25E2\u25E4__#\n#  _\u25E5\u25E3_\u25E5##\u25E3___\u25E2\u25E4__\u25E2\u25E4\n#  _+\u25E5\u25E3___#\u25E3.\u25E2\u25E4_:\u25E2\u25E4\n#  +__#_x_###\u25E4\u2026_\u25E2\u25E4\n# +_  \u25E5###\u25E4____\u25E2\u25E4\n#+ __ _______:\u25E2\u25E4\n\u25E5#############\u25E4\n"));
     levels.push(new Level(3, 30, "\n##########################\n##########################\n##\u25DC        \u25E5###        \u25DD##\n##          \u25E5##         ##\n##      #\u25E3        ###   ##\n##      \u25E5#\u25E3       ##    ##\n#####    ###########    ##\n#####    ###########   ###\n##       ##       ##   ###\n##       ##       ##    ##\n##   o##### x ##  ##    ##\n##    ##########  ####  ##\n##mmmm##    ###    ###gg##\n##    ##    ####  ########\n##    ##  #####    #######\n##o   ##  ######  ########\n##    ##  ######       \u25DD##\n##    ##      ##\u25E3       ##\n##    ##      ###### o  ##\n##        ##            ##\n##       \u25E2##\u25DF          \u25DE##\n##########################\n##########################\n"));
     levels.push(new Level(3, 30, "\n#####################\n#                   #\n# x          #     \u25E2#\n##########^^^####  ##\n#g       #^^^      \u25E5#\n#g       #          #\n#g       #   ########\n#####\u2026\u2026  #   <<<<<<<#\n#        #   <<<<<<<#\n#        #   #      #\n#....#####   #      #\n#    >>>>>          #\n#    >>>>>    o    o#\n#    #########      #\n#\u25E3                 \u25E2#\n##\u25E3               \u25E2##\n#####################\n"));
-    levels.push(new Level(3, 30, "\n##################\n#x   \u25E5\u25E3    \u25E2\u25E4    #\n###\u25E3  \u25E5\u25E3  \u25E2\u25E4  .  #\n#g \u25E5\u25E3  \u25E5\u25E3\u25E2\u25E4  \u25E2\u25E4  #\n#g  \u25E5\u25E3  \u25E5\u25E4  \u25E2\u25E4  \u25E2#\n#\u25E2\u25E3  \u25E5\u25E3    \u25E2\u25E4  \u25E2\u25E4#\n#\u25E5\u25E4\u25E2\u25E3 \u25E5\u25E3  \u25E2\u25E4  \u25E2\u25E4 #\n#  \u25E5\u25E4\u25E2\u25E3\u25E5\u25E3\u25E2\u25E4. \u25E2\u25E4  #\n#  \u25E2\u25E3\u25E5\u25E4\u25E2\u25E4\u25E5\u25E3. \u25E5\u25E3  #\n#\u25E2\u25E3\u25E5\u25E4 \u25E2\u25E4..\u25E5\u25E3  \u25E5\u25E3 #\n#\u25E5\u25E4  \u25E2\u25E4    \u25E5\u25E3  \u25E5\u25E3#\n#   \u25E2\u25E4  \u25E2\u25E3  \u25E5\u25E3  \u25E5#\n#  \u25E2\u25E4  \u25E2\u25E4\u25E5\u25E3  \u25E5\u25E3  #\n#  .  \u25E2\u25E4  \u25E5\u25E3  .  #\n#    \u25E2\u25E4    \u25E5\u25E3    #\n##################\n"));
     levels.push(new Level(3, 30, "\n#############################\n##\u25E4                 o       #\n#\u25E4     \u25E2\u25E3     o             #\n#     \u25E2\u25E4\u25E5\u25E3                  #\n#     \u25E5\u25E3\u25E2################   #\n#      \u25E5#\u25E4    . : . : .     #\n# o     #                  \u25E2#\n#       #     . : . : .   \u25E2##\n#   o   #     ###############\n#       #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #gg#\n#\u2026     \u2026#   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   #  #\n#       # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3 #  #\n#  #o#  # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4 #. #\n#  # #  #   \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3   #  #\n#  #x#  #   \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4   # .#\n#  #m#  # \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3  \u25E2\u25E3    #\n#       # \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4  \u25E5\u25E4    #\n#############################\n"));
     levels.push(new Level(3, 30, "\n##################\n#          \u25DD#gggg#\n# x         #o   #\n##########  #    #\n#\u25DC      \u25DD#  #   \u25E5#\n#        #  #    #\n#  o  o  #  #\u25E4   #\n#  #  #     #    #\n#\u25DF\u25DE#  #\u25DF   \u25DE#   \u25E5#\n####  #######    #\n#\u25DC    #\u25DC   \u25DD#\u25E4   #\n#    \u25DE#     #    #\n#  ####  #  #   \u25E5#\n#        #       #\n#\u25DF      \u25DE#\u25DF     \u25DE#\n##################\n"));
     levels.push(new Level(4, 30, "\n#######     ############\n#o    #     #          #\n#     #\u2026\u2026\u2026\u2026\u2026#  \u25E2 \u25E3     #\n#  #                   #\n#   o #\u2026\u2026\u2026\u2026\u2026#  \u25E5 \u25E4     #\n#    o#     #### #######\n### ###        : :\n  : :          : :\n  : :          : +\u2026\u2026\u2026\u2026+\n  : :          :      :\n  # ######     +\u2026\u2026\u2026\u2026+ :\n  #   .  #          : :\n  # .  . #\u2026\u2026\u2026####   : :\n  #             #   : :\n  # . . .#\u2026\u2026\u2026#  #   ggg\n  #      #   # x#   ggg\n  ########   ####   \n"));
@@ -657,6 +689,7 @@ var LevelSet = (function () {
             if (this.timeOut) {
                 this.currentLevel = null;
                 MainMenu();
+                return;
             }
             else {
                 this.StartNextLevel();
@@ -666,7 +699,7 @@ var LevelSet = (function () {
             this.levelCompleteTimer += delta;
             return;
         }
-        if (this.currentLevel.complete) {
+        if (this.currentLevel && this.currentLevel.complete) {
             if (gameMode == Mode.test) {
                 editorTestCompleteTime = (+(new Date()) - this.currentLevel.startTime) / 1000;
                 StartEditor();
@@ -689,7 +722,8 @@ var LevelSet = (function () {
                 this.timeOut = true;
             }
             else {
-                this.currentLevel.Step(delta);
+                if (this.currentLevel)
+                    this.currentLevel.Step(delta);
             }
         }
         this.levelStartTime -= delta;
@@ -981,8 +1015,11 @@ function MainMenu() {
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     var y = 95;
     var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special"];
+    loadLevels();
     var _loop_1 = function(i) {
-        var b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
+        var levelCount = levels.filter(function (x) { return x.difficulty === i + 1; }).length;
+        var buttonText = difficulties[i] + " (" + levelCount + " stages)";
+        var b = new BaseMenuElement(50, y, 200, 40, buttonText, false);
         b.onClick = function () {
             currentMenu = [];
             loadLevels();
@@ -1245,8 +1282,11 @@ var View = (function () {
                     this.ctx.fillStyle = "rgba(0,0,200,0.6)";
                     if (userData == "bouncer")
                         this.ctx.fillStyle = "rgba(200,0,200,0.6)";
-                    if (userData == "ball")
+                    if (userData == "ball") {
                         this.ctx.fillStyle = "rgba(0,0,0,0.6)";
+                        if (level.hurtTimer > 0)
+                            this.ctx.fillStyle = "rgba(60,0,0,0.6)";
+                    }
                     var r = shape.m_radius;
                     this.ctx.beginPath();
                     this.ctx.arc(0, 0, r * this.scale, 0, Math.PI * 2);
@@ -1257,6 +1297,12 @@ var View = (function () {
                     this.ctx.fillStyle = "rgba(0,200,0,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
+                }
+                else if (userData == "timerPenalty") {
+                    this.ctx.fillStyle = "rgba(200,0,0,0.6)";
+                    this.createPath(shape.m_vertices);
+                    this.fill();
+                    this.stroke();
                 }
                 else if (userData == "rotationLock" && gameMode == Mode.edit) {
                     this.ctx.fillStyle = "rgba(255,255,255,0.6)";

@@ -53,7 +53,11 @@ function EditorTick() {
             let tile = levelTiles.find(x => x.character == char);
             let tileIndex = levelTiles.indexOf(tile);
             editorButtons[tileIndex].onClick();
-        } catch (e) { }
+        } catch (e) { 
+            let tile = levelTiles.find(x => x.character == "_");
+            let tileIndex = levelTiles.indexOf(tile);
+            editorButtons[tileIndex].onClick();
+        }
     }
     if (keyboardState.isLeftPressed()) view.offsetX -= 1;
     if (keyboardState.isRightPressed()) view.offsetX += 1;

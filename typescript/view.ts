@@ -112,7 +112,10 @@ class View {
                 if (type == "circle") {
                     this.ctx.fillStyle = "rgba(0,0,200,0.6)";
                     if (userData == "bouncer") this.ctx.fillStyle = "rgba(200,0,200,0.6)";
-                    if (userData == "ball") this.ctx.fillStyle = "rgba(0,0,0,0.6)";
+                    if (userData == "ball") {
+                        this.ctx.fillStyle = "rgba(0,0,0,0.6)";
+                        if (level.hurtTimer > 0) this.ctx.fillStyle = "rgba(60,0,0,0.6)";
+                    }
                     var r = shape.m_radius;
                     this.ctx.beginPath();
                     this.ctx.arc(0, 0, r * this.scale, 0, Math.PI * 2);
@@ -122,6 +125,11 @@ class View {
                     this.ctx.fillStyle = "rgba(0,200,0,0.6)";
                     this.createPath(shape.m_vertices);
                     this.fill();
+                } else if (userData == "timerPenalty") {
+                    this.ctx.fillStyle = "rgba(200,0,0,0.6)";
+                    this.createPath(shape.m_vertices);
+                    this.fill();
+                    this.stroke();
                 } else if (userData == "rotationLock" && gameMode == Mode.edit) {
                     this.ctx.fillStyle = "rgba(255,255,255,0.6)";
                     this.createPath(shape.m_vertices);

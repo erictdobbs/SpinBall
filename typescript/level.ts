@@ -16,6 +16,7 @@ class Level {
     startTime: number;
     complete: boolean = false;
     secondsToComplete: number = 0;
+    hurtTimer: number = 0;
 
     Step(delta): void {
         if (gameMode == Mode.edit) {
@@ -24,11 +25,11 @@ class Level {
         }
         if (this.world) {
             this.world.step(delta);
-            this.OnWorldStep(this.world);
+            this.OnWorldStep(this.world, delta);
         }
     }
 
-    OnWorldStep(world) {
+    OnWorldStep(world, delta) {
         if (!this.startTime) this.startTime = +(new Date());
 
         var secondsPerRotation = 2.0;
@@ -64,6 +65,10 @@ class Level {
                 }
             }
         }
+        if (this.hurtTimer) {
+            this.hurtTimer -= delta;
+            if (this.hurtTimer < 0) this.hurtTimer = 0;
+        }
     }
 
     RotateGrav(world, r): void {
@@ -78,6 +83,12 @@ class Level {
         var gravY = Math.sin(newAngle) * gravityStrength;
         world.setGravity(planck.Vec2(gravX, gravY));
         view.setRotation(newAngle);
+    }
+
+    OnTouchHurt() {
+        if (this.hurtTimer > 0) return;
+        this.hurtTimer = 1;
+        currentLevels.timer -= 1;
     }
 
     loadWorld(): any {
@@ -130,6 +141,7 @@ class Level {
             var myBouncer = fA.getUserData() == fds.bouncer.userData && bA || fB.getUserData() == fds.bouncer.userData && bB;
             var myBall = fA.getUserData() == fds.ball.userData && bA || fB.getUserData() == fds.ball.userData && bB;
             var myGoal = fA.getUserData() == fds.goal.userData && bA || fB.getUserData() == fds.goal.userData && bB;
+            var myTimerPenalty = fA.getUserData() == fds.timerPenalty.userData && bA || fB.getUserData() == fds.timerPenalty.userData && bB;
             
             if (myBouncer && myBall) {
                 var pBall = myBall.getPosition();
@@ -140,7 +152,9 @@ class Level {
                 myBall.applyLinearImpulse(impulseVector, pBall, true);
             }
 
-            if (myBall && myGoal) {
+            if (myBall && myTimerPenalty && currentLevel) currentLevel.OnTouchHurt();
+
+            if (myBall && myGoal && currentLevel) {
                 var completionTime = +(new Date()) - currentLevel.startTime;
                 currentLevel.complete = true;
                 currentLevel.secondsToComplete = Math.floor(completionTime) / 1000;
@@ -231,7 +245,8 @@ var fds = {
     goal: null,
     pusher: null,
     breakWall: null,
-    rotationLock: null
+    rotationLock: null,
+    timerPenalty: null
 }
 
 class Direction {
@@ -251,7 +266,8 @@ class LevelTile {
     constructor(
         public character: string, 
         public name: string, 
-        public addToLevel: (level: Level, x: number, y: number) => void
+        public addToLevel: (level: Level, x: number, y: number) => void,
+        public group: string = ""
     ) {}
 }
 
@@ -267,7 +283,8 @@ function loadLevelTiles() {
         goal: { density: 0.0, friction: 0.2, userData: 'goal' },
         pusher: { shape: planck.Box(1, 1), isSensor: true, userData: "pusher" },
         breakWall: { density: 0.0, friction: 0.2, restitution: 0.1, userData: "breakWall" },
-        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" }
+        rotationLock: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "rotationLock" },
+        timerPenalty: { density: 0.0, friction: 0.2, restitution: 0.5, userData: "timerPenalty"}
     }
 
     levelTiles = [
@@ -292,72 +309,76 @@ function loadLevelTiles() {
         }),
         new LevelTile(".", "Pin", (level,x,y) => {
             level.AddPin(x, y);
-        }),
+        }, "Pin"),
         new LevelTile("+", "Pin Cross", (level,x,y) => {
             level.AddPin(x - 0.5, y); 
             level.AddPin(x + 0.5, y); 
             level.AddPin(x, y + 0.5); 
             level.AddPin(x, y - 0.5);
-        }),
+        }, "Pin"),
         new LevelTile(":", "Pin Vertical Pair", (level,x,y) => {
             level.AddPin(x, y - 0.5); 
             level.AddPin(x, y + 0.5);
-        }),
+        }, "Pin"),
         new LevelTile("…", "Pin Horizontal Pair", (level,x,y) => {
             level.AddPin(x - 0.5, y); 
             level.AddPin(x + 0.5, y);
-        }),
+        }, "Pin"),
         new LevelTile("◣", "Diagonal Up Left", (level,x,y) => {
             level.AddTriangle(x, y, 0);
-        }),
+        }, "Ramp"),
         new LevelTile("◢", "Diagonal Up Right", (level,x,y) => {
             level.AddTriangle(x, y, Math.PI / 2);
-        }),
+        }, "Ramp"),
         new LevelTile("◤", "Diagonal Down Left", (level,x,y) => {
             level.AddTriangle(x, y, -Math.PI / 2);
-        }),
+        }, "Ramp"),
         new LevelTile("◥", "Diagonal Down Right", (level,x,y) => {
             level.AddTriangle(x, y, Math.PI);
-        }),
+        }, "Ramp"),
         new LevelTile("◟", "Curve Up Left", (level,x,y) => {
             level.AddCurve(x, y, 0);
-        }),
+        }, "Curve"),
         new LevelTile("◞", "Curve Up Right", (level,x,y) => {
             level.AddCurve(x, y, Math.PI / 2);
-        }),
+        }, "Curve"),
         new LevelTile("◜", "Curve Down Left", (level,x,y) => {
             level.AddCurve(x, y, -Math.PI / 2);
-        }),
+        }, "Curve"),
         new LevelTile("◝", "Curve Down Right", (level,x,y) => {
             level.AddCurve(x, y, Math.PI);
-        }),
+        }, "Curve"),
         new LevelTile("<", "Pusher Left", (level,x,y) => {
             level.AddPusher(x, y, Direction.Left)
-        }),
+        }, "Pusher"),
         new LevelTile(">", "Pusher Right", (level,x,y) => {
             level.AddPusher(x, y, Direction.Right)
-        }),
+        }, "Pusher"),
         new LevelTile("^", "Pusher Up", (level,x,y) => {
             level.AddPusher(x, y, Direction.Up)
-        }),
+        }, "Pusher"),
         new LevelTile("v", "Pusher Down", (level,x,y) => {
             level.AddPusher(x, y, Direction.Down)
-        }),
+        }, "Pusher"),
         new LevelTile("m", "Breakwall Pair Bottom", (level,x,y) => {
             level.AddBreakWall(x - 0.5, y - 0.5, 0); 
             level.AddBreakWall(x + 0.5, y - 0.5, 0);
         }),
         new LevelTile("B", "Breakwall Bonus Time", (level,x,y) => {
-            level.AddBreakWall(x - 0.5, y - 0.5, 3); 
+            level.AddBreakWall(x - 0.5, y - 0.5, 5); 
             level.AddBreakWall(x + 0.5, y - 0.5, 1); 
             level.AddBreakWall(x - 0.5, y + 0.5, 1); 
-            level.AddBreakWall(x + 0.5, y + 0.5, 0);
+            level.AddBreakWall(x + 0.5, y + 0.5, 3);
         }),
         new LevelTile("P", "Breakwall Penalty Time", (level,x,y) => {
             level.AddBreakWall(x - 0.5, y - 0.5, -2); 
             level.AddBreakWall(x + 0.5, y - 0.5, 0); 
             level.AddBreakWall(x - 0.5, y + 0.5, 0); 
             level.AddBreakWall(x + 0.5, y + 0.5, -2);
+        }),
+        new LevelTile("N", "Timer Penalty", (level,x,y) => {
+            var timerPenalty = level.world.createBody(planck.Vec2(x, y));
+            timerPenalty.createFixture(planck.Box(1, 1), fds.timerPenalty);
         }),
         new LevelTile("q", "Lock Rotation", (level,x,y) => {
             level.fullRotation = false;

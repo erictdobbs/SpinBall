@@ -124,8 +124,11 @@ function MainMenu() {
     currentMenu.push(new MenuLabel(30, 30, 240, 60, "New Game"));
     let y = 95;
     let difficulties = ["Practice", "Easy", "Medium", "Hard", "Special"/*, "Debug"*/];
+    loadLevels();
     for (let i = 0; i < difficulties.length; i++) {
-        let b = new BaseMenuElement(50, y, 200, 40, difficulties[i], false);
+        let levelCount = levels.filter(x => x.difficulty === i + 1).length;
+        let buttonText = difficulties[i] + " (" + levelCount + " stages)";
+        let b = new BaseMenuElement(50, y, 200, 40, buttonText, false);
         b.onClick = () => {
             currentMenu = [];
             loadLevels();

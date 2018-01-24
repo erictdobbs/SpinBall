@@ -9,12 +9,27 @@ canvas {
     z-index: 10;
 }
 
-img {
+#backgroundImage {
     transform: translate(-50%,-50%);
     position: fixed;
     top: 50%;
     left: 50%;
     min-width: 100%;
     min-height: 100%;
-    opacity: 0.4;
+    opacity: 0.5;
+}
+
+#titleLogos > img {
+    z-index: 2;
+    position: fixed;
+}
+
+#StudioLogo {
+    right: 20px;
+    bottom: 20px;
+}
+
+#TitleLogo {
+    right: 20px;
+    bottom: 100px;
 }

@@ -54,7 +54,11 @@ var Mode;
     Mode[Mode["play"] = 2] = "play";
 })(Mode || (Mode = {}));
 var gameMode = Mode.play;
-var levelString = "\n#####\n#___#\n#_x_#\n#####\n";
+var levelString = "";
+ClearEditor();
+function ClearEditor() {
+    levelString = "\n#####\n#___#\n#_x_#\n#####\n";
+}
 function StartEditor() {
     gameMode = Mode.edit;
     currentLevels = new LevelSet([
@@ -194,7 +198,12 @@ function DrawEditorPane(view) {
         editorButtons.push(importButton);
         var testButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 4, width - margin * 2, buttonHeight * 1.5, "Test Level", function () { gameMode = Mode.test; });
         editorButtons.push(testButton);
-        var mainMenuButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 1, width - margin * 2, buttonHeight * 1.5, "Exit to Main Menu", function () { gameMode = Mode.play; MainMenu(); });
+        var mainMenuButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 1, width - margin * 2, buttonHeight * 1.5, "Exit to Main Menu", function () {
+            ClearEditor();
+            currentLevels.SetBackground("1");
+            gameMode = Mode.play;
+            MainMenu();
+        });
         editorButtons.push(mainMenuButton);
     }
     view.ctx.fillStyle = "rgba(45,45,63,0.3)";
@@ -705,11 +714,24 @@ var LevelSet = (function () {
         enumerable: true,
         configurable: true
     });
+    LevelSet.prototype.SetBackground = function (imageName) {
+        if (imageName === void 0) { imageName = ""; }
+        var image = document.getElementById("backgroundImage");
+        if (imageName == "") {
+            imageName = (this.levelIndex % 5).toString();
+            if (editorButtons.length)
+                imageName = "editor";
+        }
+        var targetSrc = "images/" + imageName + ".jpg";
+        if (image.src !== targetSrc)
+            image.src = targetSrc;
+    };
     LevelSet.prototype.Step = function (delta) {
         if (this.levelCompleteTimer > 4)
             this.canContinueToNext = true;
         if (!this.currentLevel)
             return;
+        this.SetBackground();
         if (this.canContinueToNext && keyboardState.isAnyPressed()) {
             if (this.timeOut) {
                 this.currentLevel = null;
@@ -1090,8 +1112,10 @@ function DrawUI() {
             var b = currentMenu_2[_i];
             b.draw(view);
         }
-        view.drawCenteredText("Spinball", 0.08, 0.65);
-        view.drawCenteredText("An unfinished game", 0.05, 0.75);
+        document.getElementById("titleLogos").style.display = "initial";
+    }
+    else {
+        document.getElementById("titleLogos").style.display = "none";
     }
 }
 function onlyUnique(value, index, self) {

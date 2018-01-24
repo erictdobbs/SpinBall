@@ -15,7 +15,7 @@ class LevelSet {
         return this.levelIndex + 1;
     }
     get levelIndex(): number {
-        return this.levels.indexOf(this.currentLevel);
+        return this.levels.indexOf(this.currentLevel); 
     }
     get prettyTimeRemaining(): string {
         return (Math.floor(this.timer * 100) / 100).toFixed(2);
@@ -30,9 +30,20 @@ class LevelSet {
         return this.levels[newIndex];
     }
 
+    SetBackground(imageName: string = ""): void {
+        let image = <HTMLImageElement>document.getElementById("backgroundImage");
+        if (imageName == "") {
+            imageName = (this.levelIndex % 5).toString();
+            if (editorButtons.length) imageName = "editor";
+        }
+        let targetSrc = "images/" + imageName + ".jpg";
+        if (image.src !== targetSrc) image.src = targetSrc;
+    }
+
     Step(delta): void {
         if (this.levelCompleteTimer > 4) this.canContinueToNext = true;
         if (!this.currentLevel) return;
+        this.SetBackground();
 
         if (this.canContinueToNext && keyboardState.isAnyPressed()) {
             if (this.timeOut) {

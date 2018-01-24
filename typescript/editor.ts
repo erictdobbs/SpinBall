@@ -5,12 +5,16 @@ enum Mode {
 }
 
 var gameMode = Mode.play;
-var levelString = `
+var levelString = "";
+ClearEditor();
+function ClearEditor() {
+    levelString = `
 #####
 #___#
 #_x_#
 #####
 `;
+}
 
 function StartEditor() {
     gameMode = Mode.edit;
@@ -157,7 +161,12 @@ function DrawEditorPane(view: View) {
 
         let mainMenuButton = new EditorButton(
             margin, height - (margin + 1.5 * buttonHeight) * 1, width - margin * 2, buttonHeight * 1.5,
-            "Exit to Main Menu", () => { gameMode = Mode.play; MainMenu(); });
+            "Exit to Main Menu", () => { 
+                ClearEditor();
+                currentLevels.SetBackground("1");
+                gameMode = Mode.play; 
+                MainMenu(); 
+            });
         editorButtons.push(mainMenuButton);
     }
 

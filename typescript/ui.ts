@@ -160,8 +160,8 @@ function DrawUI(): void {
         view.ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
         for (let b of currentMenu) b.draw(view);
 
-        
-        view.drawCenteredText("Spinball", 0.08, 0.65);
-        view.drawCenteredText("An unfinished game", 0.05, 0.75);
+        document.getElementById("titleLogos").style.display = "initial";
+    } else {
+        document.getElementById("titleLogos").style.display = "none";
     }
 }

@@ -1,6 +1,8 @@
 
+var saveFile: SaveFile;
 var currentLevels: LevelSet;
 window.onload = () => {
+    saveFile = new SaveFile();
     let canvas = <HTMLCanvasElement>document.getElementById("canvas");
     view = new View(canvas);
 
@@ -24,26 +26,27 @@ window.onload = () => {
     MainLoop();
 }
 
-var lastUpdate = +(new Date());
+//var lastUpdate = +(new Date());
 var framesPerSecond = 60;
 var msPerUpdate = 1000 / framesPerSecond;
 function MainLoop() {
     mouseHandler.UpdateMouseDelta();
     UITick();
-    var now = +(new Date());
-    if (now >= lastUpdate + msPerUpdate) {
+    //var now = +(new Date());
+    //if (now >= lastUpdate + msPerUpdate) {
 
         view.clear();
         keyboardState.cycleKeyState();
-        if (currentLevels) currentLevels.Step((now - lastUpdate)/1000);
+        //if (currentLevels) currentLevels.Step((now - lastUpdate)/1000);
+        if (currentLevels) currentLevels.Step(msPerUpdate/1000);
         if (currentLevels) currentLevels.Draw(view);
         
         DrawUI();
-        lastUpdate = now;
-    }
-    requestAnimationFrame(() => {
+    //    lastUpdate = now;
+    //}
+    setTimeout(() => {
         MainLoop();
-    })
+    }, msPerUpdate)
 }
 /* typescript */ if (false) { var planck; }
 

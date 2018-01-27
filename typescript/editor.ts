@@ -19,7 +19,7 @@ function ClearEditor() {
 function StartEditor() {
     gameMode = Mode.edit;
     currentLevels = new LevelSet([
-        new Level(0, 0, levelString)
+        new Level(-1, 0, 0, levelString)
     ])
 }
 
@@ -29,16 +29,16 @@ function EditorTick() {
             if (b.isMouseWithin()) {
                 b.onClick();
             }
-        }
+        } 
         if (mouseHandler.mouseX <= editorPaneWidth) return;
 
         var activeButton = <EditorButtonElement>editorButtons.find(x => x instanceof EditorButtonElement && x.isActive);
         var levelTile = levelTiles[activeButton.index];
         let char = levelTile.character;
         if (char == "x" && !mouseHandler.isMouseLeftChanged) return;
-        let cell = view.getBottomLeftGameCoordOfMouseOverCell();
-        let stringX = (cell.x) / 2;
-        let stringY = -(cell.y) / 2;
+        let cell = view.getBottomLeftGameCoordOfMouseOverCell(); 
+        let stringX = (cell.x) / 2; 
+        let stringY = -(cell.y) / 2;  
 
         if (char == "x") levelString = levelString.replace('x', '_');
         levelString = ReplaceChar(levelString, char, stringX, stringY);

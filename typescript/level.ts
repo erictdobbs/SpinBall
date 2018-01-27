@@ -2,11 +2,14 @@ type LevelSpecial = (l:Level, x:number, y:number) => void;
 
 class Level {
     constructor(
+        public id: number,
         public difficulty: number,
         public time: number,
         public levelString: string,
         public tip: string = ""
     ) {
+        let best = saveFile.GetBestTime(id);
+        if (best) this.bestTime = best;
     }
 
     fullRotation: boolean = true;
@@ -17,6 +20,7 @@ class Level {
     complete: boolean = false;
     secondsToComplete: number = 0;
     hurtTimer: number = 0;
+    bestTime: number = 999;
 
     Step(delta): void {
         if (gameMode == Mode.edit) {

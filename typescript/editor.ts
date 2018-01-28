@@ -29,16 +29,16 @@ function EditorTick() {
             if (b.isMouseWithin()) {
                 b.onClick();
             }
-        } 
+        }
         if (mouseHandler.mouseX <= editorPaneWidth) return;
 
         var activeButton = <EditorButtonElement>editorButtons.find(x => x instanceof EditorButtonElement && x.isActive);
         var levelTile = levelTiles[activeButton.index];
         let char = levelTile.character;
         if (char == "x" && !mouseHandler.isMouseLeftChanged) return;
-        let cell = view.getBottomLeftGameCoordOfMouseOverCell(); 
-        let stringX = (cell.x) / 2; 
-        let stringY = -(cell.y) / 2;  
+        let cell = view.getBottomLeftGameCoordOfMouseOverCell();
+        let stringX = (cell.x) / 2;
+        let stringY = -(cell.y) / 2;
 
         if (char == "x") levelString = levelString.replace('x', '_');
         levelString = ReplaceChar(levelString, char, stringX, stringY);
@@ -57,7 +57,7 @@ function EditorTick() {
             let tile = levelTiles.find(x => x.character == char);
             let tileIndex = levelTiles.indexOf(tile);
             editorButtons[tileIndex].onClick();
-        } catch (e) { 
+        } catch (e) {
             let tile = levelTiles.find(x => x.character == "_");
             let tileIndex = levelTiles.indexOf(tile);
             editorButtons[tileIndex].onClick();
@@ -137,14 +137,14 @@ function DrawEditorPane(view: View) {
         }
 
         let exportButton = new EditorButton(
-            margin, height - (margin + 1.5 * buttonHeight)*3, (width - margin) / 2 - margin, buttonHeight * 1.5,
+            margin, height - (margin + 1.5 * buttonHeight) * 3, (width - margin) / 2 - margin, buttonHeight * 1.5,
             "Export", () => {
-                prompt("Here's your level code:", levelString.replace(/\r?\n/g, '/'));
+                prompt("Here's your level code:", MinimizeLevelString(levelString));
             });
         editorButtons.push(exportButton);
 
         let importButton = new EditorButton(
-            (width + margin) / 2, height - (margin + 1.5 * buttonHeight)*3, (width - margin) / 2 - margin, buttonHeight * 1.5,
+            (width + margin) / 2, height - (margin + 1.5 * buttonHeight) * 3, (width - margin) / 2 - margin, buttonHeight * 1.5,
             "Import", () => {
                 let code = prompt("Please enter your level code:");
                 if (code && code.length) {
@@ -161,11 +161,11 @@ function DrawEditorPane(view: View) {
 
         let mainMenuButton = new EditorButton(
             margin, height - (margin + 1.5 * buttonHeight) * 1, width - margin * 2, buttonHeight * 1.5,
-            "Exit to Main Menu", () => { 
+            "Exit to Main Menu", () => {
                 ClearEditor();
                 currentLevels.SetBackground("1");
-                gameMode = Mode.play; 
-                MainMenu(); 
+                gameMode = Mode.play;
+                MainMenu();
             });
         editorButtons.push(mainMenuButton);
     }
@@ -175,4 +175,33 @@ function DrawEditorPane(view: View) {
     view.ctx.fillStyle = "rgba(45,45,63,1)";
     view.ctx.fillRect(0, 0, width, view.height);
     for (let b of editorButtons) b.draw(view);
+}
+
+function MinimizeLevelString(str: string): string {
+    str = str.replace(/\r?\n/g, '/');
+
+    let streaks = [];
+    let currentStreak = "";
+    for (let i = 0; i < str.length; i++) {
+        let char = str[i];
+        if (currentStreak.indexOf(char) > -1) {
+            currentStreak += char;
+        } else {
+            if (currentStreak === "") {
+                currentStreak += char;
+            } else {
+                streaks.push(currentStreak);
+                currentStreak = char;
+            }
+        }
+    }
+    streaks.push(currentStreak);
+
+    let minifiedLevel = streaks.map(x => {
+        if (x.length === 0) return "";
+        if (x.length <= 2) return x;
+        return x.length.toString() + x[0];
+    }).join('');
+    
+    return minifiedLevel;
 }

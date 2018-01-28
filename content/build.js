@@ -182,7 +182,7 @@ function DrawEditorPane(view) {
             _loop_1(group);
         }
         var exportButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 3, (width - margin) / 2 - margin, buttonHeight * 1.5, "Export", function () {
-            prompt("Here's your level code:", levelString.replace(/\r?\n/g, '/'));
+            prompt("Here's your level code:", MinimizeLevelString(levelString));
         });
         editorButtons.push(exportButton);
         var importButton = new EditorButton((width + margin) / 2, height - (margin + 1.5 * buttonHeight) * 3, (width - margin) / 2 - margin, buttonHeight * 1.5, "Import", function () {
@@ -211,6 +211,35 @@ function DrawEditorPane(view) {
         var b = editorButtons_2[_a];
         b.draw(view);
     }
+}
+function MinimizeLevelString(str) {
+    str = str.replace(/\r?\n/g, '/');
+    var streaks = [];
+    var currentStreak = "";
+    for (var i = 0; i < str.length; i++) {
+        var char = str[i];
+        if (currentStreak.indexOf(char) > -1) {
+            currentStreak += char;
+        }
+        else {
+            if (currentStreak === "") {
+                currentStreak += char;
+            }
+            else {
+                streaks.push(currentStreak);
+                currentStreak = char;
+            }
+        }
+    }
+    streaks.push(currentStreak);
+    var minifiedLevel = streaks.map(function (x) {
+        if (x.length === 0)
+            return "";
+        if (x.length <= 2)
+            return x;
+        return x.length.toString() + x[0];
+    }).join('');
+    return minifiedLevel;
 }
 var Key = {
     None: 0, Enter: 13, Shift: 16, Ctrl: 17, Alt: 18, Pause: 19, Escape: 27, Space: 32, PageUp: 33, PageDown: 34,
@@ -277,6 +306,27 @@ var Level = (function () {
         var best = saveFile.GetBestTime(id);
         if (best)
             this.bestTime = best;
+        var expandedLevelString = "";
+        var numberString = "";
+        var numerals = "0123456789";
+        for (var i = 0; i < levelString.length; i++) {
+            var char = levelString[i];
+            if (numerals.indexOf(char) > -1) {
+                numberString += char;
+            }
+            else {
+                if (numberString === "") {
+                    expandedLevelString += char;
+                }
+                else {
+                    var multiplier = parseInt(numberString);
+                    numberString = "";
+                    for (var j = 0; j < multiplier; j++)
+                        expandedLevelString += char;
+                }
+            }
+        }
+        this.levelString = expandedLevelString;
     }
     Level.prototype.Step = function (delta) {
         if (gameMode == Mode.edit) {

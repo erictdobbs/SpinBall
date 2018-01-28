@@ -10,6 +10,26 @@ class Level {
     ) {
         let best = saveFile.GetBestTime(id);
         if (best) this.bestTime = best;
+
+        let expandedLevelString = "";
+        let numberString = "";
+        let numerals = "0123456789"
+        for (let i = 0; i < levelString.length; i++) {
+            let char = levelString[i];
+            if (numerals.indexOf(char) > -1) {
+                numberString += char;
+            } else {
+                if (numberString === "") {
+                    expandedLevelString += char;
+                } else {
+                    let multiplier = parseInt(numberString);
+                    numberString = "";
+                    for (let j=0; j<multiplier; j++) expandedLevelString += char;
+                }
+            }
+        }
+        
+        this.levelString = expandedLevelString;
     }
 
     fullRotation: boolean = true;

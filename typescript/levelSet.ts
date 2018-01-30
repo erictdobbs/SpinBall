@@ -124,8 +124,16 @@ class LevelSet {
                     view.drawCenteredText("Hit any key to continue", 0.06, 0.8);
                 }
             } else if (level.complete) {
-                view.drawCenteredText("Level Complete!", 0.1, 0.35);
-                view.drawCenteredText(level.secondsToComplete.toFixed(2) + " seconds", 0.08, 0.55);
+                view.drawCenteredText("Level Complete!", 0.1, 0.25);
+                view.drawCenteredText(level.secondsToComplete.toFixed(2) + " seconds", 0.08, 0.40);
+                if (this.levelCompleteTimer > 1) {
+                    if (level.secondsToComplete < level.bestTime) {
+                        saveFile.SetBestTime(level.id, level.secondsToComplete);
+                        view.drawCenteredText("New record!", 0.08, 0.48);
+                    } else {
+                        view.drawCenteredText("Current record: " + level.bestTime.toFixed(2), 0.06, 0.48);
+                    }
+                }
                 if (this.levelCompleteTimer > 2) {
                     if (this.nextLevel) {
                         let timerExtend = this.nextLevel.time;

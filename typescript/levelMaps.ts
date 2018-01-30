@@ -5,7 +5,7 @@ var levels: Level[] = [];
 
 function loadLevels(): void {
     levels = [];
-    levels.push(new Level(6, 30, `q
+    levels.push(new Level(1, 6, 30, `q
      #########
      #     BB#
      # x     #
@@ -17,7 +17,7 @@ function loadLevels(): void {
 // PRACTICE MODE
 ///////////////////////////////////////
 
-    levels.push(new Level(1, 45, `
+    levels.push(new Level(2, 1, 45, `
 ##############
 #            #
 #            #
@@ -26,7 +26,7 @@ function loadLevels(): void {
 ##############
 `, "Rotate the maze with Left and Right."));
 
-    levels.push(new Level(1, 30, `
+    levels.push(new Level(3, 1, 30, `
 ##############
 #            #
 #            #
@@ -51,7 +51,7 @@ function loadLevels(): void {
 ################
 `, "Navigate to the end of each maze before time runs out."));
 
-    levels.push(new Level(1, 30, `q
+    levels.push(new Level(4, 1, 30, `q
      #########
      #       #
      # x     #
@@ -67,7 +67,7 @@ function loadLevels(): void {
 #########################
 `, "Some mazes can't be completely rotated."));
 
-    levels.push(new Level(1, 30, `
+    levels.push(new Level(5, 1, 30, `
 #########
 #       # ############# ############
 #       # #          o# #          #
@@ -81,7 +81,7 @@ function loadLevels(): void {
     ############              ######
 `, "Round bumpers and pins will bounce the marble around."));
 
-    levels.push(new Level(1, 30, `
+    levels.push(new Level(6, 1, 30, `
 #######
 #_____#########
 # ____________#
@@ -99,7 +99,7 @@ function loadLevels(): void {
 ###############
 `, "Red blocks will run out your timer faster. Don't touch them!"));
 
-levels.push(new Level(1, 30, `
+levels.push(new Level(7, 1, 30, `
 ##############gg#
 #______#_____#mm#
 #______#_____#mm#
@@ -118,7 +118,7 @@ ____#############
 // EASY MODE
 ///////////////////////////////////////
 
-    levels.push(new Level(2, 60, `
+    levels.push(new Level(8, 2, 60, `
          #################
          #################
 ###########            ◝##
@@ -148,7 +148,7 @@ ____#############
         #########
 `));
 
-levels.push(new Level(2, 30, `
+levels.push(new Level(9, 2, 30, `
 ################
 ##◤______#_____#
 #◤_______#_◣_◢_#
@@ -166,7 +166,7 @@ levels.push(new Level(2, 30, `
 ################
 `));
 
-levels.push(new Level(2, 30, `
+levels.push(new Level(10, 2, 30, `
 #################
 #◜   >  :  <   ◝#
 #    >  :  <    #
@@ -185,7 +185,7 @@ levels.push(new Level(2, 30, `
 #################
 `));
 
-levels.push(new Level(2, 40, `
+levels.push(new Level(11, 2, 40, `
 #################
 #◜_____◝#◜_____◝#
 # #####_#_#####_#
@@ -204,7 +204,7 @@ levels.push(new Level(2, 40, `
 #################
 `));
 
-levels.push(new Level(2, 30, `
+levels.push(new Level(12, 2, 30, `
 ##################
 #x   ◥◣    ◢◤    #
 ###◣  ◥◣  ◢◤  .  #
@@ -223,7 +223,7 @@ levels.push(new Level(2, 30, `
 ##################
 `));
 
-levels.push(new Level(2, 30, `
+levels.push(new Level(13, 2, 30, `
 ◢#########◣
 #+ _g##◤__◥◣
 # +_g#◤__._#####◣
@@ -244,7 +244,7 @@ levels.push(new Level(2, 30, `
 // NORMAL MODE
 ///////////////////////////////////////
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(14, 3, 30, `
 ##########################
 ##########################
 ##◜        ◥###        ◝##
@@ -270,7 +270,7 @@ levels.push(new Level(2, 30, `
 ##########################
 `));
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(15, 3, 30, `
 #####################
 #                   #
 # x          #     ◢#
@@ -290,7 +290,7 @@ levels.push(new Level(2, 30, `
 #####################
 `));
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(16, 3, 30, `
 #############################
 ##◤                 o       #
 #◤     ◢◣     o             #
@@ -311,7 +311,7 @@ levels.push(new Level(2, 30, `
 #############################
 `));
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(17, 3, 30, `
 ##################
 #          ◝#gggg#
 # x         #o   #
@@ -330,7 +330,7 @@ levels.push(new Level(2, 30, `
 ##################
 `));
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(18, 3, 30, `
 ###################
 #◤___◥#_____#_____#
 #_____#_____#_ggg_#
@@ -352,7 +352,7 @@ levels.push(new Level(2, 30, `
 ###################
 `));
 
-    levels.push(new Level(3, 30, `
+    levels.push(new Level(19, 3, 30, `
 ###################
 #___#_____#_______#
 #___#_____#_______#
@@ -372,7 +372,7 @@ N_N_N__N__N___N___N
 // HARD MODE
 ///////////////////////////////////////
 
-    levels.push(new Level(4, 30, `
+    levels.push(new Level(20, 4, 30, `
 #######     ############
 #o    #     #          #
 #     #……………#  ◢ ◣     #
@@ -392,7 +392,7 @@ N_N_N__N__N___N___N
   ########   ####   
 `));
 
-    levels.push(new Level(4, 30, `
+    levels.push(new Level(21, 4, 30, `
    ###################
    #◜         ##ggggg#
    # ####### ###◝   ◜#
@@ -409,7 +409,7 @@ N_N_N__N__N___N___N
     ######
 `));
 
-    levels.push(new Level(4, 30, `q
+    levels.push(new Level(22, 4, 30, `q
 ############################
 #     o     o           <  #
 #                       <  #
@@ -432,7 +432,7 @@ N_N_N__N__N___N___N
 // SPECIAL MODE
 ///////////////////////////////////////
 
-    levels.push(new Level(5, 60, `q
+    levels.push(new Level(23, 5, 60, `q
 ############################
 ##########       ###########
 #                .         #
@@ -455,7 +455,7 @@ N_N_N__N__N___N___N
 ############################
 `));
 
-    levels.push(new Level(5, 30, `q
+    levels.push(new Level(24, 5, 30, `q
 ##########################
 ##########################
 ##                   <<◝##
@@ -483,4 +483,9 @@ N_N_N__N__N___N___N
 ##########################
 `));
 
+
+    let levelIds = levels.map(x=> x.id);
+    if (levelIds.distinct().length !== levels.length) {
+        console.error("Level ids are not distinct");
+    }
 }

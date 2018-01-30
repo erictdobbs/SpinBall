@@ -1,8 +1,10 @@
 
 var currentLevels: LevelSet;
+var soundHandler: SoundHandler;
 window.onload = () => {
     let canvas = <HTMLCanvasElement>document.getElementById("canvas");
     view = new View(canvas);
+    soundHandler = new SoundHandler(document.getElementById("audio"));
 
     document.onkeydown = keyboardState.handleKeyDown;
     document.onkeyup = keyboardState.handleKeyUp;

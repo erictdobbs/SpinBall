@@ -87,6 +87,7 @@ class Level {
 
     OnTouchHurt() {
         if (this.hurtTimer > 0) return;
+        soundHandler.play("ouch");
         this.hurtTimer = 1;
         currentLevels.timer -= 1;
     }
@@ -128,6 +129,7 @@ class Level {
                         currentLevels.timer += timerBonus;
                         currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0,0));
                         currentLevel.world.destroyBody(myBreakWall);
+                        soundHandler.play("box");
                     } catch (e) { }}, 1);
                 }
             }
@@ -150,6 +152,7 @@ class Level {
                 var strength = 10;
                 var impulseVector = Vec2(strength * Math.cos(pAngle), strength * Math.sin(pAngle));
                 myBall.applyLinearImpulse(impulseVector, pBall, true);
+                soundHandler.play("jump");
             }
 
             if (myBall && myTimerPenalty && currentLevel) currentLevel.OnTouchHurt();

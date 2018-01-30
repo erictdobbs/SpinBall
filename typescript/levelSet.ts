@@ -67,10 +67,15 @@ class LevelSet {
                 return;
             }
             this.levelCompleteTimer += delta;
-            if (this.levelCompleteTimer > 2 && !this.showTimerExtend && this.nextLevel) {
-                this.timer += this.nextLevel.time;
-                if (this.timer > 99.99) this.timer = 99.99;
-                this.showTimerExtend = true;
+            if (this.levelCompleteTimer > 2 && !this.showTimerExtend) {
+                if(this.nextLevel) {
+                    soundHandler.play("gem1");
+                    this.timer += this.nextLevel.time;
+                    if (this.timer > 99.99) this.timer = 99.99;
+                    this.showTimerExtend = true;
+                } else {
+                    soundHandler.play("victory");
+                }
             }
         } else if (gameMode == Mode.play && this.levelStartTime > 0) {
         } else {
@@ -78,6 +83,7 @@ class LevelSet {
             if (this.timer <= 0 && gameMode == Mode.play) {
                 this.timer = 0;
                 this.timeOut = true;
+                soundHandler.play("death");
             } else {
                 if (this.currentLevel) this.currentLevel.Step(delta);
             }

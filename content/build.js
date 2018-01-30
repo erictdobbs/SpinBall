@@ -4,9 +4,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var currentLevels;
+var soundHandler;
 window.onload = function () {
     var canvas = document.getElementById("canvas");
     view = new View(canvas);
+    soundHandler = new SoundHandler(document.getElementById("audio"));
     document.onkeydown = keyboardState.handleKeyDown;
     document.onkeyup = keyboardState.handleKeyUp;
     canvas.addEventListener("mousedown", mouseHandler.onMouseDown, false);
@@ -347,6 +349,7 @@ var Level = (function () {
     Level.prototype.OnTouchHurt = function () {
         if (this.hurtTimer > 0)
             return;
+        soundHandler.play("ouch");
         this.hurtTimer = 1;
         currentLevels.timer -= 1;
     };
@@ -382,6 +385,7 @@ var Level = (function () {
                             currentLevels.timer += timerBonus;
                             currentLevels.currentLevel.ball.setLinearVelocity(Vec2(0, 0));
                             currentLevel.world.destroyBody(myBreakWall);
+                            soundHandler.play("box");
                         }
                         catch (e) { }
                     }, 1);
@@ -403,6 +407,7 @@ var Level = (function () {
                 var strength = 10;
                 var impulseVector = Vec2(strength * Math.cos(pAngle), strength * Math.sin(pAngle));
                 myBall.applyLinearImpulse(impulseVector, pBall, true);
+                soundHandler.play("jump");
             }
             if (myBall && myTimerPenalty && currentLevel)
                 currentLevel.OnTouchHurt();
@@ -753,11 +758,17 @@ var LevelSet = (function () {
                 return;
             }
             this.levelCompleteTimer += delta;
-            if (this.levelCompleteTimer > 2 && !this.showTimerExtend && this.nextLevel) {
-                this.timer += this.nextLevel.time;
-                if (this.timer > 99.99)
-                    this.timer = 99.99;
-                this.showTimerExtend = true;
+            if (this.levelCompleteTimer > 2 && !this.showTimerExtend) {
+                if (this.nextLevel) {
+                    soundHandler.play("gem1");
+                    this.timer += this.nextLevel.time;
+                    if (this.timer > 99.99)
+                        this.timer = 99.99;
+                    this.showTimerExtend = true;
+                }
+                else {
+                    soundHandler.play("victory");
+                }
             }
         }
         else if (gameMode == Mode.play && this.levelStartTime > 0) {
@@ -767,6 +778,7 @@ var LevelSet = (function () {
             if (this.timer <= 0 && gameMode == Mode.play) {
                 this.timer = 0;
                 this.timeOut = true;
+                soundHandler.play("death");
             }
             else {
                 if (this.currentLevel)
@@ -905,6 +917,62 @@ var MouseHandler = (function () {
     return MouseHandler;
 }());
 var mouseHandler = new MouseHandler();
+var SoundHandler = (function () {
+    function SoundHandler(container) {
+        this.container = container;
+        this.sounds = [];
+        this.sounds = [
+            new Sound(this, "box", 0.5, false),
+            new Sound(this, "death", 1, false),
+            new Sound(this, "gem1", 1, false),
+            new Sound(this, "jump", 1, false),
+            new Sound(this, "level1", 1, true),
+            new Sound(this, "level2", 1, true),
+            new Sound(this, "level3", 1, true),
+            new Sound(this, "level4", 1, true),
+            new Sound(this, "ouch", 1, false),
+            new Sound(this, "snare", 1, false),
+            new Sound(this, "title", 1, false),
+            new Sound(this, "victory", 1, true)
+        ];
+    }
+    SoundHandler.prototype.play = function (name) {
+        var sound = this.sounds.find(function (x) { return x.name == name; });
+        if (sound.loop) {
+            if (sound.isPlaying)
+                return;
+            for (var _i = 0, _a = this.sounds; _i < _a.length; _i++) {
+                var s = _a[_i];
+                s.stop();
+            }
+        }
+        sound.play();
+    };
+    return SoundHandler;
+}());
+var Sound = (function () {
+    function Sound(soundHandler, name, volume, loop) {
+        this.name = name;
+        this.volume = volume;
+        this.loop = loop;
+        this.isPlaying = false;
+        this.htmlElement = new Audio();
+        this.htmlElement.src = "audio/" + name + ".mp3";
+        this.htmlElement.loop = loop;
+        this.htmlElement.volume = volume;
+        soundHandler.container.appendChild(this.htmlElement);
+    }
+    Sound.prototype.play = function () {
+        this.isPlaying = true;
+        this.htmlElement.play();
+    };
+    Sound.prototype.stop = function () {
+        this.isPlaying = false;
+        this.htmlElement.pause();
+        this.htmlElement.currentTime = 0;
+    };
+    return Sound;
+}());
 var Tileset = (function () {
     function Tileset(domId) {
         this.loaded = false;

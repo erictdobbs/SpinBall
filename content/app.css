@@ -19,17 +19,20 @@ canvas {
     opacity: 0.5;
 }
 
-#titleLogos > img {
-    z-index: 2;
-    position: fixed;
-}
-
 #StudioLogo {
     right: 20px;
     bottom: 20px;
+    z-index: 20;
+    position: fixed;
 }
 
 #TitleLogo {
     right: 20px;
     bottom: 100px;
+    z-index: 2;
+    position: fixed;
+}
+
+.no-show {
+    display: none;
 }

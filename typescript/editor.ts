@@ -164,6 +164,7 @@ function DrawEditorPane(view: View) {
             "Exit to Main Menu", () => {
                 ClearEditor();
                 currentLevels.SetBackground("1");
+                editorButtons = [];
                 gameMode = Mode.play;
                 MainMenu();
             });

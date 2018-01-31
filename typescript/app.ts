@@ -10,7 +10,7 @@ window.onload = () => {
 
     document.onkeydown = keyboardState.handleKeyDown;
     document.onkeyup = keyboardState.handleKeyUp;
-    
+
     canvas.addEventListener("mousedown", mouseHandler.onMouseDown, false);
     canvas.addEventListener("mouseup", mouseHandler.onMouseUp, false);
     canvas.addEventListener("mousemove", mouseHandler.onMouseMove, false);
@@ -20,7 +20,7 @@ window.onload = () => {
     //canvas.addEventListener("wheel", mouseHandler.onMouseScroll, false);
     canvas.oncontextmenu = function (e) { e.preventDefault(); };
 
-    window.onresize = () => {view.onResize();};
+    window.onresize = () => { view.onResize(); };
     //loadLevels();
     //currentLevels = new LevelSet(levels, 40);
     //StartEditor();
@@ -32,18 +32,19 @@ window.onload = () => {
 var framesPerSecond = 60;
 var msPerUpdate = 1000 / framesPerSecond;
 function MainLoop() {
+    HandleMusic();
     mouseHandler.UpdateMouseDelta();
     UITick();
     //var now = +(new Date());
     //if (now >= lastUpdate + msPerUpdate) {
 
-        view.clear();
-        keyboardState.cycleKeyState();
-        //if (currentLevels) currentLevels.Step((now - lastUpdate)/1000);
-        if (currentLevels) currentLevels.Step(msPerUpdate/1000);
-        if (currentLevels) currentLevels.Draw(view);
-        
-        DrawUI();
+    view.clear();
+    keyboardState.cycleKeyState();
+    //if (currentLevels) currentLevels.Step((now - lastUpdate)/1000);
+    if (currentLevels) currentLevels.Step(msPerUpdate / 1000);
+    if (currentLevels) currentLevels.Draw(view);
+
+    DrawUI();
     //    lastUpdate = now;
     //}
     setTimeout(() => {
@@ -54,6 +55,23 @@ function MainLoop() {
 
 var gravityStrength = 10;
 
-function StartMainMenu(): void {
+function HandleMusic(): void {
+
+    if (editorButtons.length) {
+        soundHandler.play("level4");
+    } else if (currentLevels && currentLevels.currentLevel) {
+        let level = currentLevels.currentLevel;
+        if (level.complete && !currentLevels.nextLevel) {
+            soundHandler.play("victory");
+        } else if (!currentLevels.timeOut) {
+            if (level.difficulty === 1) soundHandler.play("level4");
+            if (level.difficulty === 2) soundHandler.play("level1");
+            if (level.difficulty === 3) soundHandler.play("level2");
+            if (level.difficulty === 4) soundHandler.play("level3");
+            if (level.difficulty === 5) soundHandler.play("title");
+        }
+    } else {
+        soundHandler.play("title");
+    }
 
 }

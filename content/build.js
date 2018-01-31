@@ -27,6 +27,7 @@ window.onload = function () {
 var framesPerSecond = 60;
 var msPerUpdate = 1000 / framesPerSecond;
 function MainLoop() {
+    HandleMusic();
     mouseHandler.UpdateMouseDelta();
     UITick();
     view.clear();
@@ -44,7 +45,31 @@ if (false) {
     var planck;
 }
 var gravityStrength = 10;
-function StartMainMenu() {
+function HandleMusic() {
+    if (editorButtons.length) {
+        soundHandler.play("level4");
+    }
+    else if (currentLevels && currentLevels.currentLevel) {
+        var level = currentLevels.currentLevel;
+        if (level.complete && !currentLevels.nextLevel) {
+            soundHandler.play("victory");
+        }
+        else if (!currentLevels.timeOut) {
+            if (level.difficulty === 1)
+                soundHandler.play("level4");
+            if (level.difficulty === 2)
+                soundHandler.play("level1");
+            if (level.difficulty === 3)
+                soundHandler.play("level2");
+            if (level.difficulty === 4)
+                soundHandler.play("level3");
+            if (level.difficulty === 5)
+                soundHandler.play("title");
+        }
+    }
+    else {
+        soundHandler.play("title");
+    }
 }
 var Mode;
 (function (Mode) {
@@ -164,7 +189,7 @@ function DrawEditorPane(view) {
         var rowNum = Math.floor(tiles.length / columns);
         var groupedTiles = levelTiles.filter(function (x) { return x.group !== ""; });
         var groups = groupedTiles.map(function (x) { return x.group; }).distinct();
-        var _loop_1 = function (group) {
+        var _loop_1 = function(group) {
             var tilesInGroup = groupedTiles.filter(function (x) { return x.group === group; });
             var y = margin + (margin + buttonHeight) * (rowNum);
             var groupButtonWidth = (width - margin) / (tilesInGroup.length + 2) - margin;
@@ -200,6 +225,7 @@ function DrawEditorPane(view) {
         var mainMenuButton = new EditorButton(margin, height - (margin + 1.5 * buttonHeight) * 1, width - margin * 2, buttonHeight * 1.5, "Exit to Main Menu", function () {
             ClearEditor();
             currentLevels.SetBackground("1");
+            editorButtons = [];
             gameMode = Mode.play;
             MainMenu();
         });
@@ -561,12 +587,12 @@ var Direction = (function () {
         if (!y)
             this.innerArrow.push({ x: 0, y: x * 0.5 }, { x: 0, y: -x * 0.5 });
     }
+    Direction.Left = new Direction(-1, 0);
+    Direction.Right = new Direction(1, 0);
+    Direction.Up = new Direction(0, 1);
+    Direction.Down = new Direction(0, -1);
     return Direction;
 }());
-Direction.Left = new Direction(-1, 0);
-Direction.Right = new Direction(1, 0);
-Direction.Up = new Direction(0, 1);
-Direction.Down = new Direction(0, -1);
 var LevelTile = (function () {
     function LevelTile(character, name, addToLevel, group) {
         if (group === void 0) { group = ""; }
@@ -822,9 +848,6 @@ var LevelSet = (function () {
                         this.timer = 99.99;
                     this.showTimerExtend = true;
                 }
-                else {
-                    soundHandler.play("victory");
-                }
             }
         }
         else if (gameMode == Mode.play && this.levelStartTime > 0) {
@@ -834,6 +857,7 @@ var LevelSet = (function () {
             if (this.timer <= 0 && gameMode == Mode.play) {
                 this.timer = 0;
                 this.timeOut = true;
+                soundHandler.stopAll();
                 soundHandler.play("death");
             }
             else {
@@ -982,63 +1006,6 @@ var MouseHandler = (function () {
     return MouseHandler;
 }());
 var mouseHandler = new MouseHandler();
-<<<<<<< HEAD
-var SoundHandler = (function () {
-    function SoundHandler(container) {
-        this.container = container;
-        this.sounds = [];
-        this.sounds = [
-            new Sound(this, "box", 0.5, false),
-            new Sound(this, "death", 1, false),
-            new Sound(this, "gem1", 1, false),
-            new Sound(this, "jump", 1, false),
-            new Sound(this, "level1", 1, true),
-            new Sound(this, "level2", 1, true),
-            new Sound(this, "level3", 1, true),
-            new Sound(this, "level4", 1, true),
-            new Sound(this, "ouch", 1, false),
-            new Sound(this, "snare", 1, false),
-            new Sound(this, "title", 1, false),
-            new Sound(this, "victory", 1, true)
-        ];
-    }
-    SoundHandler.prototype.play = function (name) {
-        var sound = this.sounds.find(function (x) { return x.name == name; });
-        if (sound.loop) {
-            if (sound.isPlaying)
-                return;
-            for (var _i = 0, _a = this.sounds; _i < _a.length; _i++) {
-                var s = _a[_i];
-                s.stop();
-            }
-        }
-        sound.play();
-    };
-    return SoundHandler;
-}());
-var Sound = (function () {
-    function Sound(soundHandler, name, volume, loop) {
-        this.name = name;
-        this.volume = volume;
-        this.loop = loop;
-        this.isPlaying = false;
-        this.htmlElement = new Audio();
-        this.htmlElement.src = "audio/" + name + ".mp3";
-        this.htmlElement.loop = loop;
-        this.htmlElement.volume = volume;
-        soundHandler.container.appendChild(this.htmlElement);
-    }
-    Sound.prototype.play = function () {
-        this.isPlaying = true;
-        this.htmlElement.play();
-    };
-    Sound.prototype.stop = function () {
-        this.isPlaying = false;
-        this.htmlElement.pause();
-        this.htmlElement.currentTime = 0;
-    };
-    return Sound;
-=======
 var SaveFile = (function () {
     function SaveFile() {
         this.version = "0.3";
@@ -1084,7 +1051,87 @@ var BestTime = (function () {
         this.time = time;
     }
     return BestTime;
->>>>>>> 34146477fe6e2a7ceab012b29fa0b4662486c522
+}());
+function Mute() {
+    var muteButton = document.getElementById("muteButton");
+    muteButton.classList.add("no-show");
+    soundHandler.muted = true;
+    for (var _i = 0, _a = soundHandler.sounds; _i < _a.length; _i++) {
+        var s = _a[_i];
+        s.htmlElement.muted = true;
+    }
+}
+function Unmute() {
+    var muteButton = document.getElementById("muteButton");
+    muteButton.classList.remove("no-show");
+    soundHandler.muted = false;
+    for (var _i = 0, _a = soundHandler.sounds; _i < _a.length; _i++) {
+        var s = _a[_i];
+        s.htmlElement.muted = false;
+    }
+}
+var SoundHandler = (function () {
+    function SoundHandler(container) {
+        this.container = container;
+        this.sounds = [];
+        this.muted = false;
+        this.sounds = [
+            new Sound(this, "box", 0.8, false),
+            new Sound(this, "death", 1, false),
+            new Sound(this, "gem1", 0.6, false),
+            new Sound(this, "jump", 1, false),
+            new Sound(this, "level1", 1, true),
+            new Sound(this, "level2", 1, true),
+            new Sound(this, "level3", 1, true),
+            new Sound(this, "level4", 0.8, true),
+            new Sound(this, "ouch", 1, false),
+            new Sound(this, "snare", 1, false),
+            new Sound(this, "title", 1, true),
+            new Sound(this, "victory", 1, true)
+        ];
+    }
+    SoundHandler.prototype.play = function (name) {
+        var sound = this.sounds.find(function (x) { return x.name == name; });
+        if (sound.loop) {
+            if (sound.isPlaying)
+                return;
+            this.stopAll();
+        }
+        sound.play();
+    };
+    SoundHandler.prototype.stopAll = function () {
+        for (var _i = 0, _a = this.sounds; _i < _a.length; _i++) {
+            var s = _a[_i];
+            s.stop();
+        }
+    };
+    return SoundHandler;
+}());
+var Sound = (function () {
+    function Sound(soundHandler, name, volume, loop) {
+        this.name = name;
+        this.volume = volume;
+        this.loop = loop;
+        this.isPlaying = false;
+        this.htmlElement = new Audio();
+        this.htmlElement.src = "audio/" + name + ".mp3";
+        this.htmlElement.loop = loop;
+        if (name == "victory")
+            this.htmlElement.loop = false;
+        this.htmlElement.volume = volume;
+        soundHandler.container.appendChild(this.htmlElement);
+    }
+    Sound.prototype.play = function () {
+        this.htmlElement.currentTime = 0;
+        this.isPlaying = true;
+        this.htmlElement.play();
+    };
+    Sound.prototype.stop = function () {
+        this.isPlaying = false;
+        this.htmlElement.pause();
+        this.htmlElement.currentTime = 0;
+    };
+    return Sound;
 }());
 var Tileset = (function () {
     function Tileset(domId) {
@@ -1182,29 +1229,27 @@ var BaseMenuElement = (function () {
 var MenuLabel = (function (_super) {
     __extends(MenuLabel, _super);
     function MenuLabel(x, y, width, height, text) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.text = text;
-        _this.labelOnly = true;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.text = text;
+        this.labelOnly = true;
     }
     return MenuLabel;
 }(BaseMenuElement));
 var EditorButtonElement = (function (_super) {
     __extends(EditorButtonElement, _super);
     function EditorButtonElement(x, y, width, height, index, text, isActive) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.index = index;
-        _this.text = text;
-        _this.isActive = isActive;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.index = index;
+        this.text = text;
+        this.isActive = isActive;
     }
     EditorButtonElement.prototype.onClick = function () {
         for (var _i = 0, editorButtons_3 = editorButtons; _i < editorButtons_3.length; _i++) {
@@ -1219,14 +1264,13 @@ var EditorButtonElement = (function (_super) {
 var EditorButton = (function (_super) {
     __extends(EditorButton, _super);
     function EditorButton(x, y, width, height, text, action) {
-        var _this = _super.call(this, x, y, width, height, text) || this;
-        _this.x = x;
-        _this.y = y;
-        _this.width = width;
-        _this.height = height;
-        _this.text = text;
-        _this.action = action;
-        return _this;
+        _super.call(this, x, y, width, height, text);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.text = text;
+        this.action = action;
     }
     EditorButton.prototype.onClick = function () {
         if (mouseHandler.isMouseLeftChanged) {
@@ -1247,7 +1291,7 @@ function MainMenu() {
     var y = 95;
     var difficulties = ["Practice", "Easy", "Medium", "Hard", "Special"];
     loadLevels();
-    var _loop_2 = function (i) {
+    var _loop_2 = function(i) {
         var levelCount = levels.filter(function (x) { return x.difficulty === i + 1; }).length;
         var buttonText = difficulties[i] + " (" + levelCount + " stages)";
         var b = new BaseMenuElement(50, y, 200, 40, buttonText, false);
